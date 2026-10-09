@@ -2,6 +2,34 @@
 
 pub mod styles;
 
+/// 内嵌字体（P9：视觉基准以内嵌字体为准，不依赖系统字体；系统字体仅作运行时兜底）。
+///
+/// 子集化产物由 `cargo xtask fonts` 从 `dev/fonts-src/` 的 Noto Sans CJK 生成到
+/// `code/assets/fonts/`（字符集 = GB2312 一级常用字 + 常用标点 + 源码实际用字）。
+pub mod fonts {
+    use iced::Font;
+
+    /// 字体族名（子集化保留原 name 表）。
+    pub const FAMILY: &str = "Noto Sans CJK SC";
+
+    /// 常规字重（子集后约 0.9MB）。
+    pub const REGULAR: &[u8] = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../assets/fonts/noto-sans-sc-regular.ttf"
+    ));
+
+    /// 粗体（子集后约 0.9MB）。
+    pub const BOLD: &[u8] = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../assets/fonts/noto-sans-sc-bold.ttf"
+    ));
+
+    /// 默认字体句柄。
+    pub const fn default() -> Font {
+        Font::with_name(FAMILY)
+    }
+}
+
 use orb_tokens::Tokens;
 use serde::{Deserialize, Serialize};
 

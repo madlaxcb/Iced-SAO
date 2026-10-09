@@ -70,8 +70,9 @@ fn main() -> ExitCode {
             cmd_win_collect();
             ExitCode::SUCCESS
         }
+        Some("fonts") => cmd_fonts(),
         _ => {
-            eprintln!("usage: cargo xtask <doctor|vendor|ci|check-layout|win-check|win-build|win-pack|dist|win-sync|win-collect>");
+            eprintln!("usage: cargo xtask <doctor|vendor|ci|check-layout|win-check|win-build|win-pack|dist|win-sync|win-collect|fonts>");
             ExitCode::from(2)
         }
     }
@@ -365,6 +366,7 @@ fn layout_ok() -> bool {
         "windows-x64/README.txt",
         "windows-x64/SHA256SUMS.txt",
         "windows-x64/THIRD_PARTY_LICENSES.txt",
+        "windows-x64/VIRUS-SCAN.md",
     ];
     visit(&dist, &mut |path, _name| {
         if path.is_file() {
@@ -373,7 +375,9 @@ fn layout_ok() -> bool {
                 .unwrap_or(path)
                 .to_string_lossy()
                 .replace('\\', "/");
-            if !allow.contains(&rel.as_str()) {
+            // 版本化发布 zip（iced-sao-vX.Y.Z-windows-x64.zip）
+            let is_release_zip = rel.starts_with("iced-sao-v") && rel.ends_with("-windows-x64.zip");
+            if !allow.contains(&rel.as_str()) && !is_release_zip {
                 errors.push(format!("unexpected file in dist/: {rel}"));
             }
         }
@@ -506,6 +510,82 @@ fn cmd_dist() {
     )
     .expect("write dist readme");
     println!("dist done -> {}", out_dir.display());
+}
+
+// ---------- fonts（P9：字体子集化）----------
+
+/// 字符集生成脚本：GB2312 一级常用字 + 常用中文标点 + ASCII 可打印 + code/ 源码实际用字。
+const SUBSET_PY: &str = r#"
+import glob, sys
+
+chars = set()
+for hi in range(0xB0, 0xD8):
+    for lo in range(0xA1, 0xFF):
+        try:
+            chars.add(bytes([hi, lo]).decode('gb2312'))
+        except UnicodeDecodeError:
+            pass
+chars.update('，。、；：？！""\u2018\u2019（）《》【】…—·～％＋－＊／＝％°℃¥')
+chars.update(chr(c) for c in range(0x20, 0x7F))
+for path in glob.glob('code/**/*.rs', recursive=True):
+    with open(path, encoding='utf-8') as f:
+        for ch in f.read():
+            if ord(ch) > 0x7F and not ch.isspace():
+                chars.add(ch)
+chars.discard('\n'); chars.discard('\r'); chars.discard('\t')
+with open(sys.argv[1], 'w', encoding='utf-8') as f:
+    f.write(''.join(sorted(chars)))
+print('subset charset:', len(chars), 'chars')
+"#;
+
+/// 子集化 Noto Sans CJK SC（ttc face 2）两个字重到 code/assets/fonts/，预算合计 ≤ 6MB。
+fn cmd_fonts() -> ExitCode {
+    let chars_file = std::env::temp_dir().join("orb-subset-chars.txt");
+    let chars_arg = chars_file.to_string_lossy().into_owned();
+    let py = run("python3", &["-c", SUBSET_PY, &chars_arg]);
+    if py != ExitCode::SUCCESS {
+        return py;
+    }
+
+    let fonts_src = repo().join("dev/fonts-src");
+    let fonts_out = code().join("assets/fonts");
+    fs::create_dir_all(&fonts_out).expect("create assets/fonts");
+    let mut total: u64 = 0;
+    for (src, out) in [
+        ("NotoSansCJK-Regular.ttc", "noto-sans-sc-regular.ttf"),
+        ("NotoSansCJK-Bold.ttc", "noto-sans-sc-bold.ttf"),
+    ] {
+        let src = fonts_src.join(src);
+        let out = fonts_out.join(out);
+        let status = run(
+            "pyftsubset",
+            &[
+                &src.to_string_lossy(),
+                "--font-number=2",
+                &format!("--text-file={chars_arg}"),
+                &format!("--output-file={}", out.display()),
+                "--layout-features=",
+                "--name-IDs=*",
+                "--name-legacy",
+                "--desubroutinize",
+            ],
+        );
+        if status != ExitCode::SUCCESS {
+            return status;
+        }
+        total += fs::metadata(&out).expect("subset output").len();
+    }
+    let budget: u64 = 6 * 1024 * 1024;
+    println!(
+        "fonts: total {} bytes (budget {} bytes, {})",
+        total,
+        budget,
+        if total <= budget { "OK" } else { "OVER BUDGET" }
+    );
+    if total > budget {
+        return ExitCode::FAILURE;
+    }
+    ExitCode::SUCCESS
 }
 
 // ---------- win-sync / win-collect ----------

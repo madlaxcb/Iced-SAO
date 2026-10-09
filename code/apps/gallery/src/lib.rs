@@ -207,7 +207,7 @@ impl Gallery {
 
     fn nav_button(page: Page, label: &str, current: Page) -> button::Button<'_, Message, OrbTheme> {
         let label = if page == current {
-            format!("▸ {label}")
+            format!("▶ {label}")
         } else {
             label.to_string()
         };
@@ -220,6 +220,9 @@ impl Gallery {
 /// 启动入口（main.rs 调用）。
 pub fn run() -> iced::Result {
     iced::application(Gallery::new, Gallery::update, Gallery::view)
+        .font(orb_theme::fonts::REGULAR)
+        .font(orb_theme::fonts::BOLD)
+        .default_font(orb_theme::fonts::default())
         .title(|g: &Gallery| {
             format!(
                 "orb gallery @ {GIT_SHA} ({:?}{})",

@@ -16,6 +16,9 @@ const MENU_ITEMS: usize = 5;
 
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
+        .font(orb_theme::fonts::REGULAR)
+        .font(orb_theme::fonts::BOLD)
+        .default_font(orb_theme::fonts::default())
         .title(|app: &App| format!("Sample Launcher · {}", app.page.label()))
         .theme(|app: &App| app.theme.clone())
         .subscription(App::subscription)
@@ -257,7 +260,7 @@ impl App {
 
 fn nav_button(page: Page, current: Page) -> iced::widget::Button<'static, Message, OrbTheme> {
     let label = if page == current {
-        format!("▸ {}", page.label())
+        format!("▶ {}", page.label())
     } else {
         page.label().into()
     };
