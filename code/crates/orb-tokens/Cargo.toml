@@ -1,0 +1,16 @@
+[package]
+name = "orb-tokens"
+description = "orb 组件库——设计 Token（颜色/渐变/圆角/阴影/间距/字号/动效，纯数据）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+palette.workspace = true
+serde.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true

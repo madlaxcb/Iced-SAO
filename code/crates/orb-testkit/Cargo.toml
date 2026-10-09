@@ -1,0 +1,21 @@
+[package]
+name = "orb-testkit"
+description = "orb 组件库——测试辅助（headless 渲染、截图比对、交互脚本）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced_tiny_skia.workspace = true
+image.workspace = true
+png.workspace = true
+tiny-skia.workspace = true
+image-compare.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

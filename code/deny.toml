@@ -1,0 +1,40 @@
+# cargo-deny 配置（计划书 3.5：许可证与禁用依赖检查；漏洞库需联网，离线时手动执行并记录日期）
+# 运行：cargo deny check licenses bans（离线可用项）
+
+[licenses]
+version = 2
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "BSL-1.0",
+    "MPL-2.0",
+]
+
+[bans]
+multiple-versions = "warn"
+# 库与示例应用禁止网络访问（计划书 6.2 门禁）
+deny = [
+    { name = "reqwest" },
+    { name = "hyper" },
+    { name = "hyper-util" },
+    { name = "ureq" },
+    { name = "curl" },
+    { name = "curl-sys" },
+    { name = "surf" },
+    { name = "attohttpc" },
+    { name = "isahc" },
+    { name = "wasm-bindgen" },   # 不做 Web 目标
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

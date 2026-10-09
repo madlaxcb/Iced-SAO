@@ -1,0 +1,19 @@
+[package]
+name = "probe"
+description = "orb M0 预研程序：多模式验证 Windows 通路与视觉/渲染假设（W0）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced_futures.workspace = true
+iced_renderer.workspace = true
+iced_runtime.workspace = true
+orb-platform.workspace = true
+png.workspace = true
+
+[lints]
+workspace = true

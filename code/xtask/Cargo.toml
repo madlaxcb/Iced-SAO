@@ -1,0 +1,15 @@
+[package]
+name = "xtask"
+description = "orb 本地自动化（doctor/vendor/ci/win-check/win-build/dist/check-layout 等）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true

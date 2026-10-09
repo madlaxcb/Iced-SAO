@@ -1,0 +1,15 @@
+# 本机依赖与构建产物（计划书 3.1）
+/dev/
+/dist/
+
+# 备用：任何 target 目录
+target/
+
+# 内部文件（永不上传）
+/CLAUDE.md
+/iced-sao-style-ui-dev-plan.md
+
+# 编辑器
+.idea/
+.vscode/
+*.swp

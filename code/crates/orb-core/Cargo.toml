@@ -1,0 +1,18 @@
+[package]
+name = "orb-core"
+description = "orb 组件库——基础设施（玻璃面板原语、渐变/阴影辅助、像素对齐、动画原语）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+iced.workspace = true
+orb-tokens.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[lints]
+workspace = true

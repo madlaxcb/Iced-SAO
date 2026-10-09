@@ -1,0 +1,18 @@
+# 项目级 cargo 配置（计划书 3.2）
+# 相对路径以 code/ 为基准（vendor 后由构建验证）
+
+[build]
+target-dir = "../dev/target"
+
+[net]
+offline = true
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "../dev/vendor"
+
+# cargo xtask <子命令> = cargo run -p xtask -- <子命令>
+[alias]
+xtask = "run -q -p xtask --"

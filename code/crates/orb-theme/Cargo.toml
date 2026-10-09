@@ -1,0 +1,19 @@
+[package]
+name = "orb-theme"
+description = "orb 组件库——主题（Theme 类型、widget 样式、字体注册、浅色/深色预设）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+iced.workspace = true
+orb-tokens.workspace = true
+orb-core.workspace = true
+serde.workspace = true
+toml.workspace = true
+notify.workspace = true
+
+[lints]
+workspace = true

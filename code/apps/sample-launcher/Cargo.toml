@@ -1,0 +1,20 @@
+[package]
+name = "sample-launcher"
+description = "orb 示例应用：启动器 + 状态面板 + 设置"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+iced.workspace = true
+orb-tokens.workspace = true
+orb-core.workspace = true
+orb-theme.workspace = true
+orb-widgets.workspace = true
+orb-icons.workspace = true
+orb-platform.workspace = true
+
+[lints]
+workspace = true

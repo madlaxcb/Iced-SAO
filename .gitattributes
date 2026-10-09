@@ -1,0 +1,21 @@
+# 换行符统一（计划书 3.7.5）：源码与文档 LF；xtask 生成的 Windows 脚本 CRLF
+* text=auto eol=lf
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.svg text eol=lf
+
+# Windows 侧生成物
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制
+*.png binary
+*.ttf binary
+*.otc binary
+*.exe binary
+*.dll binary
+*.pdb binary

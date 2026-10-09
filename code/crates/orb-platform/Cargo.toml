@@ -1,0 +1,30 @@
+[package]
+name = "orb-platform"
+description = "orb 组件库——平台抽象（Windows：透明/置顶/穿透/无边框/DPI；Linux 宿主：简化实现）"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+iced.workspace = true
+
+# Windows 专有能力只在本 crate（计划书 3.7）；Linux 上由 win-check 交叉检查，不运行
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_UI_WindowsAndMessaging",
+] }
+window-vibrancy = "0.6"
+raw-window-handle = "0.6"
+
+# 本 crate 允许 unsafe（Windows API 调用集中在 imp 模块，均带 // SAFETY: 说明）；
+# 不继承 workspace 的 unsafe_code = "deny"（命令行 lint 无法被源码 attribute 覆盖）
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "allow"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
