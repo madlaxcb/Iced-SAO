@@ -502,7 +502,7 @@ fn cmd_dist() {
     fs::write(out_dir.join("manifest.json"), manifest).expect("write dist manifest");
     fs::write(
         out_dir.join("README.txt"),
-        "orb Windows x64 release 0.1.0\n\nRun gallery.exe. Multi-monitor behavior is intentionally not verified in this release.\nSee manifest.json, SHA256SUMS.txt, and THIRD_PARTY_LICENSES.txt.\n",
+        "orb Windows x64 release 0.1.0\n\nDemos: sample-launcher.exe (showcase app), gallery.exe (component gallery).\nMulti-monitor behavior is intentionally not verified in this release.\nVerify with: sha256sum -c SHA256SUMS.txt\nSee manifest.json and THIRD_PARTY_LICENSES.txt.\n",
     )
     .expect("write dist readme");
     println!("dist done -> {}", out_dir.display());
