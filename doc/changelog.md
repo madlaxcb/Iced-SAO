@@ -3,6 +3,21 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 Semver。
 每个版本的完整发布说明与校验和见 GitHub Releases。
 
+## [v0.2.0] — 2026-10-09
+
+### Added
+
+- `list_item`：单行列表项（title + 副标题，选中态强调描边）——M4 计划的 P0 List 组件
+- `readout`：数值读出（大号数值 + 小号标签 + 可选单位）
+- `loading`：环形旋转指示（相位由调用方 Tick 推进，保持确定性动画架构；gallery 以 40ms tick 驱动、2s 一圈）
+- `tabs`：胶囊标签页（选中项强调色底，越界选择自动钳制）
+- `badge` / `BadgeLevel`：胶囊徽标（Neutral / Accent / Good / Warn / Bad 五档，颜色取主题 Token）
+- `menu_rail_next` / `menu_rail_prev`：MenuRail 键盘步进纯函数（环形 + None 兜底）
+- sample-launcher：MenuRail 键盘导航（↑↓ / ←→），达成 M5 DoD「键盘与鼠标都可用」
+- gallery Components 页：List / Tabs / Readout / Loading / Badge 全部接入展示
+
+[v0.2.0]: https://github.com/madlaxcb/Iced-SAO/releases/tag/v0.2.0
+
 ## [v0.1.2] — 2026-10-09
 
 ### Fixed

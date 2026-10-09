@@ -1,7 +1,7 @@
 //! orb-widgets：组件（button/panel/menu/hud/dialog/toast 等）。
 
 use iced::widget::{
-    button, canvas, checkbox, container, radio, scrollable, slider, text_input, toggler,
+    button, canvas, checkbox, container, radio, scrollable, slider, text, text_input, toggler,
 };
 use iced::{Color, Element, Length, Point, Rectangle, Renderer};
 use orb_theme::OrbTheme;
@@ -527,6 +527,272 @@ pub fn loop_scroll<'a, Message>(
         .style(orb_theme::style_scrollable)
 }
 
+// ---------------------------------------------------------------------------
+// M4.4 数据展示与反馈：List / Readout / Loading / Tabs / Badge
+// ---------------------------------------------------------------------------
+
+/// Rgba Token → iced Color（组件内部辅助）。
+fn color_of_token(c: Rgba) -> Color {
+    Color::from_rgba8(c[0], c[1], c[2], c[3] as f32 / 255.0)
+}
+
+/// 列表项的单行展示文本（title + 可选副标题）。
+pub fn list_item_line(title: &str, subtitle: Option<&str>) -> String {
+    match subtitle {
+        Some(subtitle) => format!("{title} — {subtitle}"),
+        None => title.to_string(),
+    }
+}
+
+/// 创建单行列表项（选中态用强调色描边，DoD：状态齐全）。
+pub fn list_item<'a, Message: Clone + 'a>(
+    title: &str,
+    subtitle: Option<&str>,
+    selected: bool,
+    on_press: Message,
+) -> Element<'a, Message, OrbTheme> {
+    let line = list_item_line(title, subtitle);
+    button(
+        container(text(line).size(orb_tokens::Typography::default().sm))
+            .width(Length::Fill)
+            .padding(10),
+    )
+    .on_press(on_press)
+    .width(Length::Fill)
+    .style(move |theme: &OrbTheme, _status| {
+        let p = &theme.tokens.palette;
+        let radius = orb_tokens::Radius::default().sm;
+        iced::widget::button::Style {
+            background: Some(color_of_token(theme.glass_fill()).into()),
+            text_color: color_of_token(p.text_primary),
+            border: iced::Border {
+                color: color_of_token(if selected { p.accent } else { p.glass_edge }),
+                width: if selected { 2.0 } else { 1.0 },
+                radius: radius.into(),
+            },
+            ..iced::widget::button::Style::default()
+        }
+    })
+    .into()
+}
+
+/// Readout 的展示文本（value + 可选单位）。
+pub fn readout_text(value: &str, unit: Option<&str>) -> String {
+    match unit {
+        Some(unit) => format!("{value} {unit}"),
+        None => value.to_string(),
+    }
+}
+
+/// 创建数值读出（大号数值 + 小号标签）。
+pub fn readout<'a, Message: 'a>(
+    value: &str,
+    label: &str,
+    unit: Option<&str>,
+) -> Element<'a, Message, OrbTheme> {
+    let typography = orb_tokens::Typography::default();
+    iced::widget::Column::new()
+        .push(text(readout_text(value, unit)).size(typography.lg))
+        .push(text(label.to_string()).size(typography.xs))
+        .spacing(2)
+        .into()
+}
+
+/// 将任意相位归一化到 0.0..1.0（Loading 旋转相位）。
+pub fn loading_normalize(phase: f32) -> f32 {
+    let p = phase % 1.0;
+    if p >= 0.0 {
+        p
+    } else {
+        p + 1.0
+    }
+}
+
+/// 创建环形 Loading（相位由调用方按 Tick 推进，保持确定性动画架构）。
+pub fn loading<'a, Message: 'a>(phase: f32, size: f32) -> Element<'a, Message, OrbTheme> {
+    canvas(LoadingProgram {
+        phase: loading_normalize(phase),
+        cache: canvas::Cache::new(),
+    })
+    .width(Length::Fixed(size))
+    .height(Length::Fixed(size))
+    .into()
+}
+
+#[derive(Debug)]
+struct LoadingProgram {
+    phase: f32,
+    cache: canvas::Cache,
+}
+
+impl<Message> canvas::Program<Message, OrbTheme> for LoadingProgram {
+    type State = ();
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer,
+        theme: &OrbTheme,
+        bounds: Rectangle,
+        _cursor: iced::mouse::Cursor,
+    ) -> Vec<canvas::Geometry> {
+        let accent = color_of_token(theme.tokens.palette.accent);
+        let phase = self.phase;
+        let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
+            let center = frame.center();
+            let radius = center.x.min(center.y) * 0.78;
+            let track = canvas::Path::circle(center, radius);
+            frame.stroke(
+                &track,
+                canvas::Stroke {
+                    width: 3.0,
+                    style: canvas::Style::Solid(Color::from_rgba8(255, 255, 255, 0.18)),
+                    ..canvas::Stroke::default()
+                },
+            );
+            let start = iced::Radians(phase * TAU);
+            let arc = canvas::Path::new(|path| {
+                path.arc(canvas::path::Arc {
+                    center,
+                    radius,
+                    start_angle: start,
+                    end_angle: iced::Radians(start.0 + TAU / 4.0),
+                });
+            });
+            frame.stroke(
+                &arc,
+                canvas::Stroke {
+                    width: 3.0,
+                    style: canvas::Style::Solid(accent),
+                    ..canvas::Stroke::default()
+                },
+            );
+        });
+        vec![geometry]
+    }
+}
+
+/// 将选中索引钳制到标签数量范围内（len = 0 时返回 0）。
+pub fn tabs_clamp_select(selected: usize, len: usize) -> usize {
+    if len == 0 {
+        return 0;
+    }
+    selected.min(len - 1)
+}
+
+/// 创建胶囊标签页（Tabs），选中项使用强调色底。
+pub fn tabs<'a, Message: Clone + 'a>(
+    labels: &[&str],
+    selected: usize,
+    on_select: impl Fn(usize) -> Message + 'a,
+) -> Element<'a, Message, OrbTheme> {
+    let selected = tabs_clamp_select(selected, labels.len());
+    let mut row = iced::widget::Row::new().spacing(4);
+    for (index, label) in labels.iter().enumerate() {
+        let is_selected = index == selected;
+        let press = on_select(index);
+        let tab = button(text((*label).to_string()).size(orb_tokens::Typography::default().xs))
+            .on_press(press)
+            .padding([6, 14])
+            .style(move |theme: &OrbTheme, _status| {
+                let p = &theme.tokens.palette;
+                let radius = orb_tokens::Radius::default().full;
+                let (bg, fg, edge) = if is_selected {
+                    (p.accent, p.on_accent, p.accent)
+                } else {
+                    (theme.glass_fill(), p.text_primary, p.glass_edge)
+                };
+                iced::widget::button::Style {
+                    background: Some(color_of_token(bg).into()),
+                    text_color: color_of_token(fg),
+                    border: iced::Border {
+                        color: color_of_token(edge),
+                        width: 1.0,
+                        radius: radius.into(),
+                    },
+                    ..iced::widget::button::Style::default()
+                }
+            });
+        row = row.push(tab);
+    }
+    row.into()
+}
+
+/// Badge / Tag 的语义级别。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BadgeLevel {
+    /// 中性。
+    Neutral,
+    /// 强调。
+    Accent,
+    /// 良好（绿）。
+    Good,
+    /// 警告（黄）。
+    Warn,
+    /// 危险（红）。
+    Bad,
+}
+
+/// 返回 Badge 级别的稳定标识。
+pub fn badge_level_label(level: BadgeLevel) -> &'static str {
+    match level {
+        BadgeLevel::Neutral => "neutral",
+        BadgeLevel::Accent => "accent",
+        BadgeLevel::Good => "good",
+        BadgeLevel::Warn => "warn",
+        BadgeLevel::Bad => "bad",
+    }
+}
+
+/// 创建胶囊徽标（Badge / Tag），颜色按级别取主题 Token。
+pub fn badge<'a, Message: 'a>(label: &str, level: BadgeLevel) -> Element<'a, Message, OrbTheme> {
+    container(text(label.to_string()).size(orb_tokens::Typography::default().xs))
+        .padding([3, 10])
+        .style(move |theme: &OrbTheme| {
+            let p = &theme.tokens.palette;
+            let (bg, fg) = match level {
+                BadgeLevel::Neutral => (p.glass_stroke, p.text_primary),
+                BadgeLevel::Accent => (p.accent, p.on_accent),
+                BadgeLevel::Good => (p.hp_good, p.on_accent),
+                BadgeLevel::Warn => (p.hp_warn, p.on_accent),
+                BadgeLevel::Bad => (p.hp_bad, p.on_accent),
+            };
+            iced::widget::container::Style {
+                background: Some(color_of_token(bg).into()),
+                text_color: Some(color_of_token(fg)),
+                border: iced::Border {
+                    color: color_of_token(bg),
+                    width: 0.0,
+                    radius: orb_tokens::Radius::default().full.into(),
+                },
+                ..iced::widget::container::Style::default()
+            }
+        })
+        .into()
+}
+
+/// MenuRail 键盘导航：向下 / 右方向（None 选中时落到第一项；空列表返回 None）。
+pub fn menu_rail_next(selected: Option<usize>, len: usize) -> Option<usize> {
+    if len == 0 {
+        return None;
+    }
+    Some(match selected {
+        None => 0,
+        Some(index) => (index + 1) % len,
+    })
+}
+
+/// MenuRail 键盘导航：向上 / 左方向（None 选中时落到最后一项；空列表返回 None）。
+pub fn menu_rail_prev(selected: Option<usize>, len: usize) -> Option<usize> {
+    if len == 0 {
+        return None;
+    }
+    Some(match selected {
+        None => len - 1,
+        Some(index) => (index + len - 1) % len,
+    })
+}
+
 #[derive(Debug)]
 struct RingProgram {
     progress: f32,
@@ -649,5 +915,63 @@ mod tests {
         assert_eq!(loop_scroll_next(0, 1), 0);
         assert_eq!(loop_scroll_prev(0, 1), 0);
         assert_eq!(loop_scroll_next(3, 0), 0);
+    }
+
+    #[test]
+    fn list_item_line_combines_title_and_subtitle() {
+        use super::list_item_line;
+        assert_eq!(list_item_line("Weapons", None), "Weapons");
+        assert_eq!(
+            list_item_line("Swords", Some("12 equipped")),
+            "Swords — 12 equipped"
+        );
+    }
+
+    #[test]
+    fn readout_text_appends_unit_when_present() {
+        use super::readout_text;
+        assert_eq!(readout_text("72 / 100", Some("HP")), "72 / 100 HP");
+        assert_eq!(readout_text("72 / 100", None), "72 / 100");
+    }
+
+    #[test]
+    fn loading_phase_normalizes_into_unit_interval() {
+        use super::loading_normalize;
+        assert!((loading_normalize(0.5) - 0.5).abs() < 1e-6);
+        assert!((loading_normalize(1.25) - 0.25).abs() < 1e-6);
+        assert!((loading_normalize(-0.25) - 0.75).abs() < 1e-6);
+        assert!((loading_normalize(-1.0) - 0.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn tabs_selection_clamps_into_bounds() {
+        use super::tabs_clamp_select;
+        assert_eq!(tabs_clamp_select(0, 3), 0);
+        assert_eq!(tabs_clamp_select(2, 3), 2);
+        assert_eq!(tabs_clamp_select(9, 3), 2);
+        assert_eq!(tabs_clamp_select(0, 0), 0);
+    }
+
+    #[test]
+    fn badge_levels_have_stable_labels() {
+        use super::{badge_level_label, BadgeLevel};
+        assert_eq!(badge_level_label(BadgeLevel::Neutral), "neutral");
+        assert_eq!(badge_level_label(BadgeLevel::Accent), "accent");
+        assert_eq!(badge_level_label(BadgeLevel::Good), "good");
+        assert_eq!(badge_level_label(BadgeLevel::Warn), "warn");
+        assert_eq!(badge_level_label(BadgeLevel::Bad), "bad");
+    }
+
+    #[test]
+    fn menu_rail_keyboard_steps_are_cyclic_and_none_safe() {
+        use super::{menu_rail_next, menu_rail_prev};
+        assert_eq!(menu_rail_next(None, 3), Some(0));
+        assert_eq!(menu_rail_next(Some(1), 3), Some(2));
+        assert_eq!(menu_rail_next(Some(2), 3), Some(0));
+        assert_eq!(menu_rail_prev(None, 3), Some(2));
+        assert_eq!(menu_rail_prev(Some(0), 3), Some(2));
+        assert_eq!(menu_rail_prev(Some(1), 3), Some(0));
+        assert_eq!(menu_rail_next(None, 0), None);
+        assert_eq!(menu_rail_prev(Some(0), 0), None);
     }
 }

@@ -88,6 +88,12 @@ pub enum ComponentMessage {
     Switch(bool),
     /// 滑块变化。
     Slide(f32),
+    /// Tabs 切换。
+    Tab(usize),
+    /// 列表项选中。
+    ListSelect(usize),
+    /// 动画帧推进（Loading 相位）。
+    Tick,
 }
 
 /// Components 页演示状态。
@@ -103,6 +109,12 @@ pub struct ComponentDemo {
     pub switch_on: bool,
     /// 滑块值。
     pub slider: f32,
+    /// Tabs 选中项。
+    pub tab: usize,
+    /// 列表选中项。
+    pub list_selected: usize,
+    /// Loading 相位（0..1，按 Tick 推进）。
+    pub loading_phase: f32,
 }
 
 impl Default for ComponentDemo {
@@ -113,6 +125,9 @@ impl Default for ComponentDemo {
             radio: 0,
             switch_on: true,
             slider: 60.0,
+            tab: 0,
+            list_selected: 0,
+            loading_phase: 0.0,
         }
     }
 }
@@ -147,6 +162,13 @@ impl Gallery {
                     ComponentMessage::Radio(value) => demo.radio = value,
                     ComponentMessage::Switch(value) => demo.switch_on = value,
                     ComponentMessage::Slide(value) => demo.slider = value,
+                    ComponentMessage::Tab(value) => demo.tab = value,
+                    ComponentMessage::ListSelect(value) => demo.list_selected = value,
+                    // 40ms 一帧：2s 旋转一圈
+                    ComponentMessage::Tick => {
+                        demo.loading_phase =
+                            orb_widgets::loading_normalize(demo.loading_phase + 0.04);
+                    }
                 }
             }
             Message::Overlay(message) => {
@@ -172,13 +194,24 @@ impl Gallery {
     fn subscription(&self) -> iced::Subscription<Message> {
         let motion = iced::time::every(std::time::Duration::from_millis(40))
             .map(|_| Message::Overlay(overlays::OverlayMessage::Tick));
+        // Loading 相位只在 Components 页活动时推进
+        let component_tick = if self.page == Page::Components {
+            iced::time::every(std::time::Duration::from_millis(40))
+                .map(|_| Message::Component(ComponentMessage::Tick))
+        } else {
+            iced::Subscription::none()
+        };
         #[cfg(debug_assertions)]
         {
-            iced::Subscription::batch([iced::Subscription::run(theme_file::theme_stream), motion])
+            iced::Subscription::batch([
+                iced::Subscription::run(theme_file::theme_stream),
+                motion,
+                component_tick,
+            ])
         }
         #[cfg(not(debug_assertions))]
         {
-            motion
+            iced::Subscription::batch([motion, component_tick])
         }
     }
 

@@ -1,14 +1,21 @@
-//! M4.1 通用组件展示页（真实可交互：状态由 [`ComponentDemo`] 持有）。
+//! M4.1 + M4.4 通用组件展示页（真实可交互：状态由 [`ComponentDemo`] 持有）。
 
 use crate::{ComponentDemo, ComponentMessage, GalleryElement, Message};
 use iced::widget::{column, row, text};
 use orb_widgets::{
-    button_variant_label, card, checkbox_control, divider, panel, radio_control, scroll_area,
-    section_header, slider_control, switch_control, text_input_control, themed_button,
-    ButtonVariant,
+    badge, button_variant_label, card, checkbox_control, divider, list_item, loading, panel,
+    radio_control, readout, scroll_area, section_header, slider_control, switch_control, tabs,
+    text_input_control, themed_button, BadgeLevel, ButtonVariant,
 };
 
-/// 构建 M4.1 通用组件展示页。
+/// 列表演示数据。
+const LIST_ITEMS: [(&str, Option<&str>); 3] = [
+    ("Weapons", Some("12 equipped")),
+    ("Items", Some("4 potions")),
+    ("Skills", None),
+];
+
+/// 构建 M4 通用组件展示页。
 pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
     let buttons = row![
         themed_button(
@@ -68,6 +75,51 @@ pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
                 .spacing(6)
             )
             .height(80),
+            divider::<Message>(),
+            text("List / Tabs / Readout / Loading / Badge").size(18),
+            column![
+                list_item(
+                    LIST_ITEMS[0].0,
+                    LIST_ITEMS[0].1,
+                    demo.list_selected == 0,
+                    Message::Component(ComponentMessage::ListSelect(0))
+                ),
+                list_item(
+                    LIST_ITEMS[1].0,
+                    LIST_ITEMS[1].1,
+                    demo.list_selected == 1,
+                    Message::Component(ComponentMessage::ListSelect(1))
+                ),
+                list_item(
+                    LIST_ITEMS[2].0,
+                    LIST_ITEMS[2].1,
+                    demo.list_selected == 2,
+                    Message::Component(ComponentMessage::ListSelect(2))
+                ),
+            ]
+            .spacing(4),
+            tabs(&["Status", "Equipment", "Skills"], demo.tab, |index| {
+                Message::Component(ComponentMessage::Tab(index))
+            }),
+            row![
+                readout("72 / 100", "HP", None),
+                readout("Lv.87", "Player", None),
+                readout("1,250", "Gold", None),
+            ]
+            .spacing(32),
+            row![
+                loading(demo.loading_phase, 32.0),
+                text("Loading spins at 2s / revolution (40ms tick)")
+            ]
+            .spacing(12),
+            row![
+                badge("NEW", BadgeLevel::Accent),
+                badge("online", BadgeLevel::Good),
+                badge("low hp", BadgeLevel::Warn),
+                badge("defeated", BadgeLevel::Bad),
+                badge("draft", BadgeLevel::Neutral),
+            ]
+            .spacing(8),
             divider::<Message>(),
             card(
                 column![

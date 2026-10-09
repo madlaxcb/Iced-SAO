@@ -8,7 +8,8 @@ use orb_core::InteractionState;
 use orb_theme::OrbTheme;
 use orb_widgets::{
     card, divider, hp_bar, hp_bar_band, loop_scroll, loop_scroll_next, loop_scroll_prev,
-    menu_panel, menu_rail, modal, ring, section_header, toast, ToastLevel,
+    menu_panel, menu_rail, menu_rail_next, menu_rail_prev, modal, ring, section_header, toast,
+    ToastLevel,
 };
 
 /// LoopScroll 条带占位数量。
@@ -54,6 +55,8 @@ enum Message {
     ShowToast,
     Tick,
     MenuSelect(usize),
+    MenuNext,
+    MenuPrev,
     LoopNext,
     LoopPrev,
 }
@@ -97,6 +100,12 @@ impl App {
             Message::ShowToast => self.toast_visible = true,
             Message::Tick => self.toast_visible = false,
             Message::MenuSelect(index) => self.menu_selected = Some(index),
+            Message::MenuNext => {
+                self.menu_selected = menu_rail_next(self.menu_selected, MENU_ITEMS);
+            }
+            Message::MenuPrev => {
+                self.menu_selected = menu_rail_prev(self.menu_selected, MENU_ITEMS);
+            }
             Message::LoopNext => self.loop_index = loop_scroll_next(self.loop_index, MENU_ITEMS),
             Message::LoopPrev => self.loop_index = loop_scroll_prev(self.loop_index, MENU_ITEMS),
         }
@@ -104,7 +113,26 @@ impl App {
     }
 
     fn subscription(&self) -> iced::Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(380)).map(|_| Message::Tick)
+        // MenuRail 键盘导航（M5 DoD：键盘与鼠标都可用）
+        let keyboard = iced::keyboard::listen().filter_map(|event| match event {
+            iced::keyboard::Event::KeyPressed {
+                key: iced::keyboard::Key::Named(named),
+                ..
+            } => match named {
+                iced::keyboard::key::Named::ArrowDown | iced::keyboard::key::Named::ArrowRight => {
+                    Some(Message::MenuNext)
+                }
+                iced::keyboard::key::Named::ArrowUp | iced::keyboard::key::Named::ArrowLeft => {
+                    Some(Message::MenuPrev)
+                }
+                _ => None,
+            },
+            _ => None,
+        });
+        iced::Subscription::batch([
+            iced::time::every(std::time::Duration::from_millis(380)).map(|_| Message::Tick),
+            keyboard,
+        ])
     }
 
     fn view(&self) -> Element<'_, Message, OrbTheme> {
@@ -307,6 +335,15 @@ mod tests {
         assert_eq!(app.menu_selected, Some(0));
         let _ = app.update(Message::MenuSelect(2));
         assert_eq!(app.menu_selected, Some(2));
+
+        // 键盘步进：环形 + None 兜底（menu_rail_next/prev）
+        let _ = app.update(Message::MenuNext);
+        assert_eq!(app.menu_selected, Some(3));
+        let _ = app.update(Message::MenuPrev);
+        assert_eq!(app.menu_selected, Some(2));
+        app.menu_selected = None;
+        let _ = app.update(Message::MenuPrev);
+        assert_eq!(app.menu_selected, Some(MENU_ITEMS - 1));
 
         assert_eq!(app.loop_index, 0);
         let _ = app.update(Message::LoopPrev);
