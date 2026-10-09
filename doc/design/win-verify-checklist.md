@@ -1,39 +1,81 @@
-# Windows 验证清单（W0：M0 预研包）
+# Windows 验证清单（当前：W2～W5）
 
-- 验证包：`probe.exe`（多模式）+ 本清单
-- 产物提交号：见 `manifest.json`
+- 对应产物：**v0.1.1**（gallery.exe + sample-launcher.exe，提交号 `8cafa91`，内嵌中文字体）
+- 产物来源：GitHub Releases zip，或 `cargo xtask win-pack` → `dist/windows-verify/`
 - 记录方式：每项在"结果"列填 `通过 / 失败 / 未测`，失败附现象描述与截图文件名
-- 截图命名：`<模式>-<序号>.png`（如 `transparent-1.png`），与清单同目录
+- 截图命名：`w<关卡>-<序号>.png`（如 `w2-1.png`），与清单同目录
+- W0 预研清单已完成（2026-10-07/08），历史版见文末附录
 
 ## 运行前提
 
-1. 把验证包解压到任意目录（建议路径不含中文空格）。
-2. 双击 `probe.exe` 打开 glass 模式；窗口顶部有一排模式按钮，
-   点击即打开对应模式的新窗口（transparent / acrylic 打开后按 Esc 退出）。
-3. 若双击报"缺少 VCRUNTIME140.dll"：安装 VC++ Redistributable（x64）后在清单记录"缺 VC 运行库"（这本身是 W0 的有效结论，影响 ADR-006 的 CRT 静态链接决策）。
+1. 解压到任意目录（建议路径不含中文与空格）。
+2. 打开 gallery.exe：窗口标题、侧栏、About 页三处提交号应一致且等于 `8cafa91`，与 manifest.json 一致（W1 检查项）。
+3. **内嵌字体**：界面中文应为 Noto Sans SC 观感（清晰、字重分明）。若出现方块、豆腐或与默认系统字体（微软雅黑）明显不同的观感，记 `失败`——这是 P9 的验证点。
+4. 双击报"缺少 VCRUNTIME140.dll"：安装 VC++ Redistributable（x64）并记录（影响 ADR-006）。
 
-## 逐项验证
+## W2：字体渲染与主题（gallery · Tokens 页）
 
-| # | 模式 | 命令 | 验证内容 | 通过标准 | 结果 |
-|---|---|---|---|---|---|
-| 1 | glass | `probe glass` | 20 个玻璃面板的渐变/圆角/描边/阴影；点按钮切深浅背景 | 面板呈半透明玻璃质感，两种背景下文字可读 | |
-| 2 | transparent | `probe transparent` | 无边框透明窗口；1.5s 后整窗穿透 | 窗口四周透明区能看到桌面；穿透生效后鼠标点击空白处落到桌面（如选中桌面图标）；状态行显示 `click-through enabled` | |
-| 3 | acrylic | `probe acrylic` | 整窗亚克力（G2） | 窗口对背后桌面内容呈现模糊；状态行显示 `acrylic applied`；记录是否卡顿 | |
-| 4 | ime | `probe ime` | 中文输入法 | 微软拼音等可输入中文，候选窗位置正确，上屏内容与显示一致 | |
-| 5 | dpi | `probe dpi` | 线条与缩放 | 在系统 100% / 125% / 150% / 200% 下分别运行：1px 线始终 1 物理像素清晰、无发虚；圆角无变形 | |
-| 6 | canvas | `probe canvas` | 同屏 6 画布（wgpu 后端） | 上排 4 块 + 下排 2 块全部显示橙圆，无黑块/缺失/错位 | |
-| 7 | snapshot | `probe snapshot` | 软件渲染离屏快照 | 当前目录生成 `probe-snapshot-light.png` 与 `probe-snapshot-dark.png`，内容与 Linux 基线对比（由开发机完成比对） | |
+| # | 操作 | 通过标准 | 结果 |
+|---|---|---|---|
+| 1 | 查看色板 / 渐变 / 阴影 / 圆角 / 字号阶梯各区 | 与 `doc/design/tokens.md` 数值一致，无缺色、无错档 | |
+| 2 | 观察中文 / 西文 / 数字混排 | 同一内嵌字体渲染，基线对齐，无字体回退混杂观感 | |
+| 3 | 对比标题（Bold）与正文（Regular） | 字重区分明显 | |
+| 4 | 切换深色 / 浅色主题（侧栏按钮） | 两套主题文字与背景对比度均可读 | |
+| 5 | 系统缩放 100% / 125% / 150% 各运行一次 | 文字清晰不虚、边线 1 物理像素、布局无错位；每档截图 | |
 
-## 附加观察（可选但有价值）
+## W3：视觉原语与动画（gallery · Primitives 页）
 
-- [ ] transparent 模式：任务栏是否出现图标；Alt+Tab 表现；"显示桌面"时窗口是否被隐藏
-- [ ] transparent/acrylic 模式：拖动窗口是否正常（无边框拖动未实现，应不可拖动——记录即可）
-- [ ] acrylic 模式：窗口拖动/缩放时的卡顿程度（计划书引用的已知性能问题）
-- [ ] glass 模式：浅色背景下面板可读性主观评价（1~5 分）
-- [ ] 全部模式：启动速度体感、是否有闪屏/黑块
-- [ ] dpi 模式：每档缩放截图各一张
+| # | 操作 | 通过标准 | 结果 |
+|---|---|---|---|
+| 1 | 查看玻璃面板（渐变 / 描边 / 阴影 / 伪毛玻璃 G1） | 半透明玻璃质感，深浅背景下文字可读 | |
+| 2 | CircleButton / Ring 展示 | 圆形无变形；Ring 进度与数值一致 | |
+| 3 | 触发入场 / 交互动画 | 流畅、无跳帧；"减少动画"开启后动画跳过或简化 | |
+| 4 | 空闲 1 分钟后看任务管理器 CPU | 记录占用数值（预期 <1%，作为性能基线） | |
+
+## W4：通用组件与输入（gallery · Components / Overlays 页）
+
+| # | 操作 | 通过标准 | 结果 |
+|---|---|---|---|
+| 1 | 逐个走查 Button / TextInput / Checkbox / Radio / Switch / Slider / ScrollArea 各状态 | hover / active / disabled / focused 视觉与交互正确 | |
+| 2 | Tooltip / ContextMenu / Modal / Toast 逐一触发 | 位置正确、层级正确、Esc / 点击外部可关闭 Modal 与菜单 | |
+| 3 | TextInput 中用微软拼音输入中文 | 候选窗位置正确、上屏一致（W0 ime 结论的组件级复核） | |
+| 4 | Tab 键在组件间移动焦点 | 焦点环可见、顺序合理 | |
+
+## W5：招牌组件、动效与降级（sample-launcher + gallery）
+
+| # | 操作 | 通过标准 | 结果 |
+|---|---|---|---|
+| 1 | sample-launcher Launcher 页：点击 MenuRail 图标切换面板 | 选中态橙色指示、右侧面板标题随之切换 | |
+| 2 | LoopScroll 区域滚动 | 循环顺序正确（选中标记 ◉ 依 index 移动） | |
+| 3 | Status 页 HpBar 与读数 | 分档颜色正确（≥0.5 绿 / ≥0.2 黄 / <0.2 红），读数与色一致 | |
+| 4 | Settings 页 Toast 触发 | 滑入、停留、自动消失时序符合 Motion Token（100/180/260/380ms） | |
+| 5 | gallery 侧栏 Opaque 按钮（降级开关） | 开启后半透明材质变不透明，布局与内容**不**变化 | |
+| 6 | 启动序列动画（打开 sample-launcher） | Enter→Brand→Content 顺序入场，无闪烁 | |
+
+## W6（预置：M7 最终冒烟）
+
+干净 Windows 环境运行 `dist/windows-x64/` 全量走查 + 性能数据。在 W2～W5 通过后细化执行项。
 
 ## 收尾
 
-1. 把截图与填好的本清单放回一个目录，交回开发机（`doc/test-reports/win-verify/<日期>/`）。
-2. 若状态行出现 `PLATFORM_FAIL: ...`，原样抄录。
+1. 截图与填好的清单放回一个目录，交回开发机 `doc/test-reports/win-verify/<日期>/`。
+2. 若出现 `PLATFORM_FAIL: ...` 字样，原样抄录。
+3. 未执行项一律保留 `未测`，不得留空。
+
+---
+
+# 附录：W0 预研清单（已完成，2026-10-07/08）
+
+- 验证包：`probe.exe`（多模式）
+
+| # | 模式 | 验证内容 | 结果 |
+|---|---|---|---|
+| 1 | glass | 20 个玻璃面板的渐变/圆角/描边/阴影 | 通过 |
+| 2 | transparent | 无边框透明窗口 + 1.5s 后穿透 | 通过 |
+| 3 | acrylic | 整窗亚克力（G2） | 通过 |
+| 4 | ime | 中文输入法 | 通过 |
+| 5 | dpi | 100/125/150/200% 缩放下 1px 线条 | 通过 |
+| 6 | canvas | 同屏 6 画布（wgpu） | 通过 |
+| 7 | snapshot | 软件渲染离屏快照 | 通过 |
+
+详细记录：`doc/test-reports/win-verify/2026-10-07-w0.md`。
