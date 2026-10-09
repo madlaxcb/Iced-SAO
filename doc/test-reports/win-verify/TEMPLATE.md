@@ -6,7 +6,7 @@
 
 - 日期：
 - 执行人：
-- 产物版本：v0.2.0
+- 产物版本：v0.3.0
 - exe 提交号（窗口标题实测）：
 - manifest.json 提交号：
 
@@ -61,6 +61,11 @@
 | 6 | Tabs 点击切换（选中橙色底）                                  | <br /> | <br />  |
 | 7 | Badge 五档颜色语义（NEW/online/low hp/defeated/draft）    | <br /> | <br />  |
 | 8 | Loading 旋转（约 2s / 圈，无卡顿、无闪烁）                      | <br /> | <br />  |
+| 9 | Table 三行点击选中，描边移动且空单元格显示 `—`                 | <br /> | <br />  |
+| 10 | RadialMenu 点击四个扇区，中心空洞不触发                       | <br /> | <br />  |
+| 11 | Avatar 显示英文 `K` 与中文 `桐` 首字符                         | <br /> | <br />  |
+| 12 | Glow 柔光可见，Opaque 降级后内容仍可读                         | <br /> | <br />  |
+| 13 | TitleBar 标题与两个圆钮可见，演示操作不关闭 Gallery              | <br /> | <br />  |
 
 ## W5：招牌组件、动效与降级（sample-launcher + gallery）
 

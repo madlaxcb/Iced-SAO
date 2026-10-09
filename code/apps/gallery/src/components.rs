@@ -3,9 +3,10 @@
 use crate::{ComponentDemo, ComponentMessage, GalleryElement, Message};
 use iced::widget::{column, row, text};
 use orb_widgets::{
-    badge, button_variant_label, card, checkbox_control, divider, list_item, loading, panel,
-    radio_control, readout, scroll_area, section_header, slider_control, switch_control, tabs,
-    text_input_control, themed_button, BadgeLevel, ButtonVariant,
+    avatar, badge, button_variant_label, card, checkbox_control, divider, glow, list_item, loading,
+    panel, radial_menu, radio_control, readout, scroll_area, section_header, slider_control,
+    switch_control, table, tabs, text_input_control, themed_button, title_bar, BadgeLevel,
+    ButtonVariant,
 };
 
 /// 列表演示数据。
@@ -14,6 +15,18 @@ const LIST_ITEMS: [(&str, Option<&str>); 3] = [
     ("Items", Some("4 potions")),
     ("Skills", None),
 ];
+
+const TABLE_HEADERS: [&str; 3] = ["Name", "Class", "Status"];
+
+fn table_rows() -> Vec<Vec<String>> {
+    vec![
+        vec!["Kirito".into(), "Swordsman".into(), "Online".into()],
+        vec!["Asuna".into(), "Rapier".into(), "Ready".into()],
+        vec!["Sinon".into(), "Archer".into(), "Standby".into()],
+    ]
+}
+
+const RADIAL_ITEMS: [&str; 4] = ["Weapon", "Item", "Skill", "System"];
 
 /// 构建 M4 通用组件展示页。
 pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
@@ -127,6 +140,48 @@ pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
                     text("主题化容器，沿用 Token 的圆角、底色、描边与阴影。"),
                 ]
                 .spacing(6)
+            ),
+            divider::<Message>(),
+            text("P2: Table / RadialMenu / Avatar / Glow / TitleBar").size(18),
+            table(
+                &TABLE_HEADERS,
+                &table_rows(),
+                demo.table_selected,
+                |index| Message::Component(ComponentMessage::TableSelect(index)),
+            ),
+            text(format!(
+                "Table selected row: {}",
+                demo.table_selected
+                    .map(|index| (index + 1).to_string())
+                    .unwrap_or_else(|| "none".into())
+            )),
+            row![
+                radial_menu(
+                    &RADIAL_ITEMS,
+                    demo.radial_selected,
+                    |index| Message::Component(ComponentMessage::RadialSelect(index)),
+                    180.0,
+                ),
+                column![
+                    text(format!(
+                        "RadialMenu selected: {}",
+                        demo.radial_selected
+                            .and_then(|index| RADIAL_ITEMS.get(index).copied())
+                            .unwrap_or("none")
+                    )),
+                    row![avatar("Kirito", 48.0), avatar("桐人", 48.0)].spacing(8),
+                    glow(card(text("Glow / accent shadow")), 0.8),
+                ]
+                .spacing(10),
+            ]
+            .spacing(20),
+            title_bar(
+                "Gallery demo title bar",
+                Message::Component(ComponentMessage::TitleBarMinimize),
+                Message::Component(ComponentMessage::TitleBarClose),
+            ),
+            text(
+                "TitleBar buttons are no-op demo actions; real window APIs stay in the app layer."
             ),
             divider::<Message>(),
             text("Panel / Card / Divider / SectionHeader 均已接入 orb-theme Catalog。"),

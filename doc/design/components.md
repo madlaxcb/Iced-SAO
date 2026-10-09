@@ -44,6 +44,20 @@
 | `tabs(labels, selected, on_select)` | 胶囊标签页（越界选择自动钳制 `tabs_clamp_select`） |
 | `badge(label, BadgeLevel)` | 胶囊徽标；Neutral / Accent / Good / Warn / Bad 五档，颜色取主题 Token |
 
+## P2 组件（v0.3.0）
+
+| 函数 | 用途 |
+|---|---|
+| `table(headers, rows, selected, on_select)` | 等宽数据表；空单元格显示 `—`，行可选中 |
+| `table_cell_text(cell)` | 空白单元格占位文本；纯函数见 `table_cell_shows_placeholder_for_blank_cells` |
+| `radial_menu(items, selected, on_select, size)` | Canvas 环形菜单；外环扇区可点击，中心空洞不触发 |
+| `radial_angle_to_index(angle_deg, count)` | 角度映射扇区索引；第一项位于正上方 |
+| `avatar(name, size)` | 圆形首字符头像，支持中文字符边界 |
+| `avatar_initial(name)` | 取姓名首字符 |
+| `glow(content, intensity)` | 使用 accent 阴影包裹内容；强度限制在 `0..=1` |
+| `glow_alpha(intensity)` | 发光强度钳制纯函数 |
+| `title_bar(title, on_minimize, on_close)` | 标题栏与最小化 / 关闭圆钮；窗口 API 由 app 层接入 |
+
 ## 招牌组件（M3 / M5）
 
 | 函数 | 用途 |

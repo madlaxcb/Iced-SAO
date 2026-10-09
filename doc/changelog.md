@@ -1,6 +1,21 @@
 # Changelog
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 Semver。
+
+## [v0.3.0] — 2026-10-09
+
+### Added
+
+- P2 `table`：等宽数据表、行选择与空单元格占位符
+- P2 `radial_menu`：Canvas 环形菜单与扇区选择
+- P2 `avatar`：英文与中文首字符头像
+- P2 `glow`：基于 accent Token 的柔光容器
+- P2 `title_bar`：标题栏、最小化与关闭圆钮
+- Gallery Components 页接入 P2 组件交互展示
+- Windows 验证清单与报告模板补充 P2 走查项目
+
+[v0.3.0]: https://github.com/madlaxcb/Iced-SAO/releases/tag/v0.3.0
+
 每个版本的完整发布说明与校验和见 GitHub Releases。
 
 ## [v0.2.0] — 2026-10-09

@@ -1,6 +1,6 @@
 # Windows 验证清单（当前：W2～W5）
 
-- 对应产物：**v0.2.0**（gallery.exe + sample-launcher.exe，提交号 `6b5cd5f`，内嵌中文字体）
+- 对应产物：**v0.3.0**（gallery.exe + sample-launcher.exe，内嵌中文字体；提交号以发布产物为准）
 - 产物来源：GitHub Releases zip，或 `cargo xtask win-pack` → `dist/windows-verify/`
 - 记录方式：每项在"结果"列填 `通过 / 失败 / 未测`，失败附现象描述与截图文件名
 - 截图命名：`w<关卡>-<序号>.png`（如 `w2-1.png`），与清单同目录
@@ -44,6 +44,11 @@
 | 6 | Tabs（Status / Equipment / Skills）点击切换 | 选中项橙色底，切换正确 | |
 | 7 | Badge 五档观感 | Neutral / Accent / Good / Warn / Bad 颜色语义正确 | |
 | 8 | Loading 旋转 | 连续旋转约 2s / 圈，无卡顿、无闪烁 | |
+| 9 | Table 三行点击选中 | 选中行强调描边随点击移动，空单元格显示 `—` | |
+| 10 | RadialMenu 点击扇区 | 外环四个扇区选择正确，中心空洞点击不改变选中项 | |
+| 11 | Avatar 中英文首字符 | `Kirito` 显示 `K`，`桐人` 显示 `桐`，圆形布局不变形 | |
+| 12 | Glow 降级与视觉 | accent 柔光可见；Opaque 开启后内容与布局保持可读 | |
+| 13 | TitleBar 按钮 | 标题、最小化、关闭按钮可见；Gallery 演示按钮不关闭应用 | |
 
 ## W5：招牌组件、动效与降级（sample-launcher + gallery）
 

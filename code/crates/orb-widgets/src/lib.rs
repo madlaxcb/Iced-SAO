@@ -3,7 +3,7 @@
 use iced::widget::{
     button, canvas, checkbox, container, radio, scrollable, slider, text, text_input, toggler,
 };
-use iced::{Color, Element, Length, Point, Rectangle, Renderer};
+use iced::{Color, Element, Length, Pixels, Point, Rectangle, Renderer, Size};
 use orb_theme::OrbTheme;
 use orb_tokens::Rgba;
 use std::f32::consts::TAU;
@@ -793,6 +793,327 @@ pub fn menu_rail_prev(selected: Option<usize>, len: usize) -> Option<usize> {
     })
 }
 
+// ---------------------------------------------------------------------------
+// P2：Table / RadialMenu / Avatar / Glow / TitleBar
+// ---------------------------------------------------------------------------
+
+/// 单元格展示文本：空白内容显示占位符。
+pub fn table_cell_text(cell: &str) -> String {
+    if cell.trim().is_empty() {
+        "—".to_string()
+    } else {
+        cell.to_string()
+    }
+}
+
+/// 创建只读数据表（表头 + 等宽单元格；行可点选，选中行强调描边）。
+pub fn table<'a, Message: Clone + 'a>(
+    headers: &[&str],
+    rows: &[Vec<String>],
+    selected: Option<usize>,
+    on_select: impl Fn(usize) -> Message + 'a,
+) -> Element<'a, Message, OrbTheme> {
+    let typography = orb_tokens::Typography::default();
+    let header_row = {
+        let mut row = iced::widget::Row::new();
+        for header in headers {
+            row = row.push(
+                container(text(table_cell_text(header)).size(typography.xs))
+                    .width(Length::Fill)
+                    .padding([6, 8]),
+            );
+        }
+        container(row)
+            .width(Length::Fill)
+            .style(|theme: &OrbTheme| iced::widget::container::Style {
+                background: Some(color_of_token(theme.opaque(theme.tokens.palette.plate)).into()),
+                ..iced::widget::container::Style::default()
+            })
+    };
+
+    let mut column = iced::widget::Column::new().push(header_row);
+    for (index, cells) in rows.iter().enumerate() {
+        let is_selected = selected == Some(index);
+        let press = on_select(index);
+        let mut row = iced::widget::Row::new();
+        for cell in cells {
+            row = row.push(
+                container(text(table_cell_text(cell)).size(typography.sm))
+                    .width(Length::Fill)
+                    .padding([6, 8]),
+            );
+        }
+        let line = button(row).on_press(press).width(Length::Fill).style(
+            move |theme: &OrbTheme, _status| {
+                let p = &theme.tokens.palette;
+                iced::widget::button::Style {
+                    background: Some(color_of_token(theme.glass_fill()).into()),
+                    text_color: color_of_token(p.text_primary),
+                    border: iced::Border {
+                        color: color_of_token(if is_selected { p.accent } else { p.glass_edge }),
+                        width: if is_selected { 2.0 } else { 1.0 },
+                        radius: 0.0.into(),
+                    },
+                    ..iced::widget::button::Style::default()
+                }
+            },
+        );
+        column = column.push(line);
+    }
+    column.into()
+}
+
+/// 将画布角度（atan2 惯例：0° 正右，顺时针为正）映射到扇区索引；第一项位于正上方。
+pub fn radial_angle_to_index(angle_deg: f32, count: usize) -> Option<usize> {
+    if count == 0 {
+        return None;
+    }
+    let sector = 360.0 / count as f32;
+    let normalized = (angle_deg + 90.0 + sector / 2.0).rem_euclid(360.0);
+    Some((normalized / sector) as usize % count)
+}
+
+/// 创建环形菜单（SAO 风格）：扇区均布、选中扇区强调填充，点击扇区触发选择。
+pub fn radial_menu<'a, Message: Clone + 'a>(
+    items: &[&str],
+    selected: Option<usize>,
+    on_select: impl Fn(usize) -> Message + 'a,
+    size: f32,
+) -> Element<'a, Message, OrbTheme> {
+    canvas(RadialProgram {
+        items: items.iter().map(|item| item.to_string()).collect(),
+        selected,
+        on_select: Box::new(on_select),
+        cache: canvas::Cache::new(),
+    })
+    .width(Length::Fixed(size))
+    .height(Length::Fixed(size))
+    .into()
+}
+
+struct RadialProgram<'a, Message> {
+    items: Vec<String>,
+    selected: Option<usize>,
+    on_select: Box<dyn Fn(usize) -> Message + 'a>,
+    cache: canvas::Cache,
+}
+
+impl<Message> RadialProgram<'_, Message> {
+    /// 扇区标签的中心点与半径。
+    fn label_center(&self, index: usize, frame_size: Size) -> (Point, f32) {
+        let center = Point::new(frame_size.width / 2.0, frame_size.height / 2.0);
+        if self.items.is_empty() {
+            return (center, 0.0);
+        }
+        let radius = center.x.min(center.y) * 0.62;
+        let sector = TAU / self.items.len() as f32;
+        let angle = -std::f32::consts::FRAC_PI_2 + sector * (index as f32 + 0.5);
+        (
+            Point::new(
+                center.x + radius * angle.cos(),
+                center.y + radius * angle.sin(),
+            ),
+            radius,
+        )
+    }
+}
+
+impl<Message> canvas::Program<Message, OrbTheme> for RadialProgram<'_, Message> {
+    type State = ();
+
+    fn update(
+        &self,
+        _state: &mut Self::State,
+        event: &canvas::Event,
+        bounds: Rectangle,
+        cursor: iced::mouse::Cursor,
+    ) -> Option<canvas::Action<Message>> {
+        if canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(iced::mouse::Button::Left))
+            != *event
+        {
+            return None;
+        }
+        let position = cursor.position_in(bounds)?;
+        let center = Point::new(bounds.width / 2.0, bounds.height / 2.0);
+        let radius = center.x.min(center.y) * 0.78;
+        let dx = position.x - center.x;
+        let dy = position.y - center.y;
+        let distance = (dx * dx + dy * dy).sqrt();
+        // 只接受环带区域（内圈空白与外沿之外不算）
+        if distance < radius * 0.5 || distance > radius {
+            return None;
+        }
+        let index = radial_angle_to_index(dy.atan2(dx).to_degrees(), self.items.len())?;
+        Some(canvas::Action::publish((self.on_select)(index)))
+    }
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer,
+        theme: &OrbTheme,
+        bounds: Rectangle,
+        _cursor: iced::mouse::Cursor,
+    ) -> Vec<canvas::Geometry> {
+        let p = &theme.tokens.palette;
+        let accent = color_of_token(p.accent);
+        let on_accent = color_of_token(p.on_accent);
+        let text_color = color_of_token(p.text_primary);
+        let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
+            let center = Point::new(frame.width() / 2.0, frame.height() / 2.0);
+            let radius = center.x.min(center.y) * 0.78;
+            let count = self.items.len() as f32;
+            if count == 0.0 {
+                return;
+            }
+            let sector = TAU / count;
+            let track = canvas::Path::circle(center, radius);
+            frame.stroke(
+                &track,
+                canvas::Stroke {
+                    width: 2.0,
+                    style: canvas::Style::Solid(Color::from_rgba8(255, 255, 255, 0.18)),
+                    ..canvas::Stroke::default()
+                },
+            );
+            let hub = canvas::Path::circle(center, radius * 0.5);
+            frame.stroke(
+                &hub,
+                canvas::Stroke {
+                    width: 1.0,
+                    style: canvas::Style::Solid(Color::from_rgba8(255, 255, 255, 0.24)),
+                    ..canvas::Stroke::default()
+                },
+            );
+            if let Some(selected) = self.selected {
+                if (selected as f32) < count {
+                    let start = -std::f32::consts::FRAC_PI_2 + sector * selected as f32;
+                    let wedge = canvas::Path::new(|path| {
+                        path.move_to(center);
+                        path.arc(canvas::path::Arc {
+                            center,
+                            radius,
+                            start_angle: iced::Radians(start),
+                            end_angle: iced::Radians(start + sector),
+                        });
+                        path.line_to(center);
+                        path.close();
+                    });
+                    frame.fill(
+                        &wedge,
+                        iced::Color {
+                            a: accent.a * 0.30,
+                            ..accent
+                        },
+                    );
+                }
+            }
+            for (index, item) in self.items.iter().enumerate() {
+                let (position, label_radius) = self.label_center(index, frame.size());
+                let is_selected = self.selected == Some(index);
+                frame.fill_text(canvas::Text {
+                    content: item.clone(),
+                    position,
+                    max_width: label_radius,
+                    color: if is_selected { on_accent } else { text_color },
+                    size: Pixels(orb_tokens::Typography::default().xs),
+                    align_x: iced::widget::text::Alignment::Center,
+                    align_y: iced::alignment::Vertical::Center,
+                    ..canvas::Text::default()
+                });
+            }
+        });
+        vec![geometry]
+    }
+}
+
+/// 取姓名首字符（char 边界安全，支持中文）作为头像字。
+pub fn avatar_initial(name: &str) -> String {
+    name.chars().next().map(String::from).unwrap_or_default()
+}
+
+/// 创建圆形头像框（首字符居中，强调色描边）。
+pub fn avatar<'a, Message: 'a>(name: &str, size: f32) -> Element<'a, Message, OrbTheme> {
+    let initial = avatar_initial(name);
+    container(
+        container(text(initial).size(orb_tokens::Typography::default().md)).style(
+            |theme: &OrbTheme| iced::widget::container::Style {
+                text_color: Some(color_of_token(theme.tokens.palette.on_accent)),
+                ..iced::widget::container::Style::default()
+            },
+        ),
+    )
+    .width(Length::Fixed(size))
+    .height(Length::Fixed(size))
+    .align_x(iced::alignment::Horizontal::Center)
+    .align_y(iced::alignment::Vertical::Center)
+    .style(|theme: &OrbTheme| {
+        let p = &theme.tokens.palette;
+        iced::widget::container::Style {
+            background: Some(color_of_token(p.accent).into()),
+            border: iced::Border {
+                color: color_of_token(theme.glass_fill_hover()),
+                width: 2.0,
+                radius: orb_tokens::Radius::default().full.into(),
+            },
+            ..iced::widget::container::Style::default()
+        }
+    })
+    .into()
+}
+
+/// 将发光强度钳制到 0..1（透明度档）。
+pub fn glow_alpha(intensity: f32) -> f32 {
+    intensity.clamp(0.0, 1.0)
+}
+
+/// 创建发光面板（SAO 强调感：橙色柔光阴影包住内容）。
+pub fn glow<'a, Message: 'a>(
+    content: impl Into<Element<'a, Message, OrbTheme>>,
+    intensity: f32,
+) -> Element<'a, Message, OrbTheme> {
+    container(content)
+        .padding(12)
+        .style(move |theme: &OrbTheme| {
+            let p = &theme.tokens.palette;
+            let a = glow_alpha(intensity);
+            iced::widget::container::Style {
+                shadow: iced::Shadow {
+                    color: Color::from_rgba8(p.accent[0], p.accent[1], p.accent[2], a * 0.6),
+                    offset: iced::Vector::new(0.0, 0.0),
+                    blur_radius: 18.0 * a.max(0.2),
+                },
+                ..iced::widget::container::Style::default()
+            }
+        })
+        .into()
+}
+
+/// 创建 SAO 风格标题栏（玻璃条 + 标题 + 最小化 / 关闭圆钮；拖动由 app 层接窗口 API）。
+pub fn title_bar<'a, Message: Clone + 'a>(
+    title: &str,
+    on_minimize: Message,
+    on_close: Message,
+) -> Element<'a, Message, OrbTheme> {
+    let typography = orb_tokens::Typography::default();
+    iced::widget::Row::new()
+        .push(container(text(title.to_string()).size(typography.sm)).padding([8, 12]))
+        .push(iced::widget::Space::new().width(Length::Fill))
+        .push(circle_button(
+            text("−".to_string()).size(typography.sm),
+            28.0,
+            Some(on_minimize),
+        ))
+        .push(circle_button(
+            text("✕".to_string()).size(typography.sm),
+            28.0,
+            Some(on_close),
+        ))
+        .spacing(6)
+        .align_y(iced::alignment::Vertical::Center)
+        .into()
+}
+
 #[derive(Debug)]
 struct RingProgram {
     progress: f32,
@@ -973,5 +1294,42 @@ mod tests {
         assert_eq!(menu_rail_prev(Some(1), 3), Some(0));
         assert_eq!(menu_rail_next(None, 0), None);
         assert_eq!(menu_rail_prev(Some(0), 0), None);
+    }
+
+    #[test]
+    fn table_cell_shows_placeholder_for_blank_cells() {
+        use super::table_cell_text;
+        assert_eq!(table_cell_text("Kirito"), "Kirito");
+        assert_eq!(table_cell_text(""), "—");
+        assert_eq!(table_cell_text("   "), "—");
+    }
+
+    #[test]
+    fn radial_angle_maps_to_sector_index() {
+        use super::radial_angle_to_index;
+        // 第一项在正上方（-90°），顺时针排布
+        assert_eq!(radial_angle_to_index(-90.0, 4), Some(0));
+        assert_eq!(radial_angle_to_index(0.0, 4), Some(1));
+        assert_eq!(radial_angle_to_index(90.0, 4), Some(2));
+        assert_eq!(radial_angle_to_index(180.0, 4), Some(3));
+        // 环绕
+        assert_eq!(radial_angle_to_index(270.0, 4), Some(0));
+        assert_eq!(radial_angle_to_index(-90.0, 0), None);
+    }
+
+    #[test]
+    fn avatar_initial_takes_first_char() {
+        use super::avatar_initial;
+        assert_eq!(avatar_initial("Kirito"), "K");
+        assert_eq!(avatar_initial("桐人"), "桐");
+        assert_eq!(avatar_initial(""), "");
+    }
+
+    #[test]
+    fn glow_alpha_clamps_into_unit_interval() {
+        use super::glow_alpha;
+        assert_eq!(glow_alpha(-0.5), 0.0);
+        assert!((glow_alpha(0.4) - 0.4).abs() < 1e-6);
+        assert_eq!(glow_alpha(1.5), 1.0);
     }
 }
