@@ -61,6 +61,8 @@ pub enum Page {
 /// Gallery 的 UI 消息。
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// 处理 Components 页消息。
+    Component(ComponentMessage),
     /// 处理 M5 浮层页面消息。
     Overlay(overlays::OverlayMessage),
     /// 切换当前页面。
@@ -73,10 +75,53 @@ pub enum Message {
     ThemeFileChanged,
 }
 
+/// Components 页交互消息（演示控件为真实可交互，非静态展示）。
+#[derive(Debug, Clone)]
+pub enum ComponentMessage {
+    /// 文本输入变化。
+    Input(String),
+    /// 复选框切换。
+    Check(bool),
+    /// 单选切换。
+    Radio(u8),
+    /// 开关切换。
+    Switch(bool),
+    /// 滑块变化。
+    Slide(f32),
+}
+
+/// Components 页演示状态。
+#[derive(Debug, Clone)]
+pub struct ComponentDemo {
+    /// 文本输入值。
+    pub input: String,
+    /// 复选框选中态。
+    pub checked: bool,
+    /// 单选项。
+    pub radio: u8,
+    /// 开关状态。
+    pub switch_on: bool,
+    /// 滑块值。
+    pub slider: f32,
+}
+
+impl Default for ComponentDemo {
+    fn default() -> Self {
+        Self {
+            input: String::new(),
+            checked: true,
+            radio: 0,
+            switch_on: true,
+            slider: 60.0,
+        }
+    }
+}
+
 /// Gallery 应用状态。
 pub struct Gallery {
     theme: OrbTheme,
     page: Page,
+    component_demo: ComponentDemo,
     overlay_demo: overlays::OverlayDemo,
 }
 
@@ -87,12 +132,23 @@ impl Gallery {
         Self {
             theme: theme_file::load_or_default(ThemeVariant::Light),
             page: Page::Tokens,
+            component_demo: ComponentDemo::default(),
             overlay_demo: overlays::OverlayDemo::new(),
         }
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Component(message) => {
+                let demo = &mut self.component_demo;
+                match message {
+                    ComponentMessage::Input(value) => demo.input = value,
+                    ComponentMessage::Check(value) => demo.checked = value,
+                    ComponentMessage::Radio(value) => demo.radio = value,
+                    ComponentMessage::Switch(value) => demo.switch_on = value,
+                    ComponentMessage::Slide(value) => demo.slider = value,
+                }
+            }
             Message::Overlay(message) => {
                 return self.overlay_demo.update(message).map(Message::Overlay)
             }
@@ -161,7 +217,7 @@ impl Gallery {
 
         let body = match self.page {
             Page::Tokens => view_tokens(&self.theme),
-            Page::Components => components::view(&self.theme),
+            Page::Components => components::view(&self.component_demo),
             Page::Overlays => self.overlay_demo.view(&self.theme),
             Page::About => view_about(),
             Page::Primitives => primitives::view(&self.theme),

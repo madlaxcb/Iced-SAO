@@ -3,6 +3,14 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 Semver。
 每个版本的完整发布说明与校验和见 GitHub Releases。
 
+## [v0.1.2] — 2026-10-09
+
+### Fixed
+
+- gallery Components 页控件从静态展示改为真实可交互（W4 验证发现）：TextInput 此前值硬编码为空串、Slider 硬编码 60.0，输入/拖动后立即被重渲染覆盖。现由 `ComponentDemo` 状态持有（TextInput / Checkbox / Radio / Switch / Slider），并补充 Radio B 选项与 Slider 数值读出
+
+[v0.1.2]: https://github.com/madlaxcb/Iced-SAO/releases/tag/v0.1.2
+
 ## [v0.1.1] — 2026-10-09
 
 ### Added
