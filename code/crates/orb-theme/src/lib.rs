@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 pub use styles::{
     style_button, style_checkbox, style_container, style_pick_list, style_pick_list_menu,
     style_progress_bar, style_radio, style_rule, style_scrollable, style_slider, style_text,
-    style_text_input, style_toggler,
+    style_text_editor, style_text_input, style_toggler,
 };
 
 /// 主题变体（浅色为默认，计划书 2.4）。
@@ -192,6 +192,22 @@ impl iced::widget::button::Catalog for OrbTheme {
         class: &Self::Class<'_>,
         status: iced::widget::button::Status,
     ) -> iced::widget::button::Style {
+        class(self, status)
+    }
+}
+
+impl iced::widget::text_editor::Catalog for OrbTheme {
+    type Class<'a> = iced::widget::text_editor::StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(styles::style_text_editor)
+    }
+
+    fn style(
+        &self,
+        class: &Self::Class<'_>,
+        status: iced::widget::text_editor::Status,
+    ) -> iced::widget::text_editor::Style {
         class(self, status)
     }
 }

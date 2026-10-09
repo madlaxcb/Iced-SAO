@@ -49,6 +49,10 @@
 | 11 | Avatar 中英文首字符 | `Kirito` 显示 `K`，`桐人` 显示 `桐`，圆形布局不变形 | |
 | 12 | Glow 降级与视觉 | accent 柔光可见；Opaque 开启后内容与布局保持可读 | |
 | 13 | TitleBar 按钮 | 标题、最小化、关闭按钮可见；Gallery 演示按钮不关闭应用 | |
+| 14 | Select 下拉选择 | 展开菜单可见，选中项更新且主题样式正确 | |
+| 15 | TextArea 多行输入 | 可换行、中文输入法上屏正常，内容不回弹 | |
+| 16 | SplitPane 比例布局 | 左右区域均可见，20%..80% 比例下无溢出或塌陷 | |
+| 17 | BackgroundLayer / Opaque | 背景叠层可见，Opaque 开启后内容与布局保持一致 | |
 
 ## W5：招牌组件、动效与降级（sample-launcher + gallery）
 

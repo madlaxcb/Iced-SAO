@@ -4,9 +4,9 @@ use crate::{ComponentDemo, ComponentMessage, GalleryElement, Message};
 use iced::widget::{column, row, text};
 use orb_widgets::{
     avatar, badge, button_variant_label, card, checkbox_control, divider, glow, list_item, loading,
-    panel, radial_menu, radio_control, readout, scroll_area, section_header, slider_control,
-    switch_control, table, tabs, text_input_control, themed_button, title_bar, BadgeLevel,
-    ButtonVariant,
+    panel, radial_menu, radio_control, readout, scroll_area, section_header, select,
+    slider_control, split_pane, switch_control, table, tabs, text_area, text_input_control,
+    themed_button, title_bar, BadgeLevel, ButtonVariant,
 };
 
 /// 列表演示数据。
@@ -27,6 +27,7 @@ fn table_rows() -> Vec<Vec<String>> {
 }
 
 const RADIAL_ITEMS: [&str; 4] = ["Weapon", "Item", "Skill", "System"];
+const SELECT_OPTIONS: [&str; 3] = ["Status", "Equipment", "Skills"];
 
 /// 构建 M4 通用组件展示页。
 pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
@@ -183,6 +184,34 @@ pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
             text(
                 "TitleBar buttons are no-op demo actions; real window APIs stay in the app layer."
             ),
+            divider::<Message>(),
+            text("P3: Select / TextArea / SplitPane / BackgroundLayer").size(18),
+            select(
+                &SELECT_OPTIONS,
+                SELECT_OPTIONS
+                    .iter()
+                    .find(|value| Some(**value) == demo.select_option.as_deref()),
+                |value: &str| Message::Component(ComponentMessage::SelectOption(value.to_string())),
+            ),
+            text(format!(
+                "Select: {}",
+                demo.select_option.as_deref().unwrap_or("none")
+            )),
+            text_area(&demo.text_area, |action| {
+                Message::Component(ComponentMessage::TextArea(action))
+            }),
+            text(format!(
+                "TextArea: {}",
+                demo.text_area.text().replace('\n', " / ")
+            )),
+            split_pane(
+                card(text("SplitPane left")),
+                card(text("SplitPane right")),
+                demo.split_ratio,
+            ),
+            text(format!("SplitPane ratio: {:.0}%", demo.split_ratio * 100.0)),
+            orb_widgets::background_layer(text("BackgroundLayer with opaque fallback"), 0.75,)
+                .height(48),
             divider::<Message>(),
             text("Panel / Card / Divider / SectionHeader 均已接入 orb-theme Catalog。"),
         ]

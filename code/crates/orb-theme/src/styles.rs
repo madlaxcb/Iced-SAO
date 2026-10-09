@@ -36,6 +36,25 @@ fn shadow(color: iced::Color, offset_y: f32, blur: f32) -> iced::Shadow {
     }
 }
 
+/// TextEditor 的主题样式。
+pub fn style_text_editor(
+    theme: &OrbTheme,
+    _status: iced::widget::text_editor::Status,
+) -> iced::widget::text_editor::Style {
+    let p = &theme.tokens.palette;
+    iced::widget::text_editor::Style {
+        background: iced::Background::Color(color(theme.glass_fill())),
+        border: iced::Border {
+            color: color(p.glass_edge),
+            width: 1.0,
+            radius: theme.tokens.radius.md.into(),
+        },
+        placeholder: color(p.text_secondary),
+        value: color(p.text_primary),
+        selection: color(p.accent),
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 各 widget 样式函数
 // ---------------------------------------------------------------------------

@@ -2,6 +2,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 Semver。
 
+## [v0.4.0] — 2026-10-09
+
+### Added
+
+- `select`：主题化下拉选择
+- `text_area`：基于 iced `text_editor` 的多行编辑器
+- `split_pane`：安全比例的水平分栏布局
+- `background_layer`：支持 Opaque 降级的主题背景层
+- Gallery Components 页接入 Select / TextArea / SplitPane / BackgroundLayer
+- 增加四项组件纯逻辑边界测试与 Windows 走查项目
+
+[v0.4.0]: https://github.com/madlaxcb/Iced-SAO/releases/tag/v0.4.0
+
 ## [v0.3.0] — 2026-10-09
 
 ### Added

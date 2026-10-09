@@ -58,6 +58,22 @@
 | `glow_alpha(intensity)` | 发光强度钳制纯函数 |
 | `title_bar(title, on_minimize, on_close)` | 标题栏与最小化 / 关闭圆钮；窗口 API 由 app 层接入 |
 
+## P1 / P2 补齐组件（v0.4.0）
+
+| 函数 | 用途 |
+|---|---|
+| `select(options, selected, on_selected)` | 主题化下拉选择；选项由调用方持有 |
+| `select_index(selected, len)` | 选择索引的确定性边界处理 |
+| `text_area(content, on_action)` | 基于 iced `text_editor` 的多行编辑器，支持中文输入法与换行 |
+| `textarea_value(value)` | 多行文本值的稳定读取入口 |
+| `split_pane(first, second, ratio)` | 20%..80% 安全比例的水平分栏；比例状态由 app 层更新 |
+| `split_pane_ratio(ratio)` | 分栏比例边界处理纯函数 |
+| `background_layer(content, alpha)` | 主题背景层；Opaque 模式自动使用不透明底色 |
+| `background_alpha(alpha)` | 背景叠层透明度钳制纯函数 |
+
+`SplitPane` 当前提供稳定比例布局，不引入自定义拖拽 Widget；需要拖动时由应用层事件更新 `ratio`。
+`BackgroundLayer` 采用 G1 伪毛玻璃路线，不承诺实时背景模糊。
+
 ## 招牌组件（M3 / M5）
 
 | 函数 | 用途 |

@@ -384,7 +384,8 @@ fn layout_ok() -> bool {
                 .replace('\\', "/");
             // 版本化发布 zip（iced-sao-vX.Y.Z-windows-x64.zip）
             let is_release_zip = rel.starts_with("iced-sao-v") && rel.ends_with("-windows-x64.zip");
-            if !allow.contains(&rel.as_str()) && !is_release_zip {
+            let is_release_checksum = rel.starts_with("SHA256SUMS-v") && rel.ends_with(".txt");
+            if !allow.contains(&rel.as_str()) && !is_release_zip && !is_release_checksum {
                 errors.push(format!("unexpected file in dist/: {rel}"));
             }
         }

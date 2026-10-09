@@ -1,7 +1,8 @@
 //! orb-widgets：组件（button/panel/menu/hud/dialog/toast 等）。
 
 use iced::widget::{
-    button, canvas, checkbox, container, radio, scrollable, slider, text, text_input, toggler,
+    button, canvas, checkbox, container, pick_list, radio, scrollable, slider, text, text_editor,
+    text_input, toggler,
 };
 use iced::{Color, Element, Length, Pixels, Point, Rectangle, Renderer, Size};
 use orb_theme::OrbTheme;
@@ -294,6 +295,90 @@ pub fn themed_button<'a, Message>(
         style
     });
     result.class(class)
+}
+
+/// 将选择索引限制在可用选项范围；空选项返回 0。
+pub fn select_index(selected: Option<usize>, len: usize) -> usize {
+    match (selected, len) {
+        (_, 0) => 0,
+        (Some(index), len) if index < len => index,
+        _ => 0,
+    }
+}
+
+/// 创建主题化下拉选择框。
+pub fn select<'a, T, Message: Clone>(
+    options: &'a [T],
+    selected: Option<&'a T>,
+    on_selected: impl Fn(T) -> Message + 'a,
+) -> iced::widget::PickList<'a, T, &'a [T], &'a T, Message, OrbTheme>
+where
+    T: ToString + PartialEq + Clone + 'a,
+{
+    pick_list(options, selected, on_selected)
+}
+
+/// 文本域内容的确定性读取入口。
+pub fn textarea_value(value: &str) -> String {
+    value.to_string()
+}
+
+/// 创建主题化多行文本编辑器。
+pub fn text_area<'a, Message: Clone + 'a>(
+    content: &'a text_editor::Content<iced::Renderer>,
+    on_action: impl Fn(text_editor::Action) -> Message + 'a,
+) -> Element<'a, Message, OrbTheme> {
+    text_editor(content)
+        .on_action(on_action)
+        .style(orb_theme::style_text_editor)
+        .into()
+}
+
+/// 将 SplitPane 比例限制在 20%..80%，避免任一侧不可用。
+pub fn split_pane_ratio(ratio: f32) -> f32 {
+    ratio.clamp(0.2, 0.8)
+}
+
+/// 创建水平比例分栏；拖拽交互由上层状态更新 ratio。
+pub fn split_pane<'a, Message: 'a>(
+    first: impl Into<Element<'a, Message, OrbTheme>>,
+    second: impl Into<Element<'a, Message, OrbTheme>>,
+    ratio: f32,
+) -> Element<'a, Message, OrbTheme> {
+    let ratio = split_pane_ratio(ratio);
+    iced::widget::Row::new()
+        .push(container(first).width(Length::FillPortion((ratio * 100.0) as u16)))
+        .push(divider::<Message>())
+        .push(container(second).width(Length::FillPortion(((1.0 - ratio) * 100.0) as u16)))
+        .into()
+}
+
+/// 将背景叠层透明度限制在 0..1。
+pub fn background_alpha(alpha: f32) -> f32 {
+    alpha.clamp(0.0, 1.0)
+}
+
+/// 创建主题化背景层；使用不透明 Token 作为降级底色。
+pub fn background_layer<'a, Message>(
+    content: impl Into<Element<'a, Message, OrbTheme>>,
+    alpha: f32,
+) -> iced::widget::Container<'a, Message, OrbTheme> {
+    let alpha = background_alpha(alpha);
+    container(content)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(move |theme: &OrbTheme| {
+            let mut background = color_of_token(theme.tokens.palette.glass_fill);
+            if theme.opaque_fallback {
+                background.a = 1.0;
+            } else {
+                background.a *= alpha;
+            }
+            iced::widget::container::Style {
+                background: Some(background.into()),
+                ..iced::widget::container::Style::default()
+            }
+        })
 }
 
 /// 创建主题化单行文本输入框。
@@ -1331,5 +1416,37 @@ mod tests {
         assert_eq!(glow_alpha(-0.5), 0.0);
         assert!((glow_alpha(0.4) - 0.4).abs() < 1e-6);
         assert_eq!(glow_alpha(1.5), 1.0);
+    }
+
+    #[test]
+    fn select_index_clamps_to_available_options() {
+        use super::select_index;
+        assert_eq!(select_index(None, 3), 0);
+        assert_eq!(select_index(Some(1), 3), 1);
+        assert_eq!(select_index(Some(9), 3), 0);
+        assert_eq!(select_index(Some(1), 0), 0);
+    }
+
+    #[test]
+    fn textarea_value_preserves_multiline_content() {
+        use super::textarea_value;
+        assert_eq!(textarea_value("hello\nworld"), "hello\nworld");
+        assert_eq!(textarea_value(""), "");
+    }
+
+    #[test]
+    fn split_pane_ratio_clamps_to_safe_range() {
+        use super::split_pane_ratio;
+        assert_eq!(split_pane_ratio(-0.2), 0.2);
+        assert!((split_pane_ratio(0.5) - 0.5).abs() < 1e-6);
+        assert_eq!(split_pane_ratio(1.2), 0.8);
+    }
+
+    #[test]
+    fn background_alpha_clamps_to_unit_interval() {
+        use super::background_alpha;
+        assert_eq!(background_alpha(-1.0), 0.0);
+        assert!((background_alpha(0.65) - 0.65).abs() < 1e-6);
+        assert_eq!(background_alpha(2.0), 1.0);
     }
 }

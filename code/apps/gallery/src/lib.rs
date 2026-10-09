@@ -8,7 +8,7 @@ pub mod overlays;
 pub mod primitives;
 pub mod theme_file;
 
-use iced::widget::{button, column, container, row, text, Space};
+use iced::widget::{button, column, container, row, text, text_editor, Space};
 use iced::{Element, Task};
 use orb_theme::{OrbTheme, Variant};
 use orb_tokens::{rgba_f32, Rgba};
@@ -100,6 +100,12 @@ pub enum ComponentMessage {
     TitleBarMinimize,
     /// TitleBar 关闭演示。
     TitleBarClose,
+    /// 下拉选择变化。
+    SelectOption(String),
+    /// 文本域编辑动作。
+    TextArea(text_editor::Action),
+    /// 分栏比例变化。
+    SplitRatio(f32),
     /// 动画帧推进（Loading 相位）。
     Tick,
 }
@@ -125,6 +131,12 @@ pub struct ComponentDemo {
     pub table_selected: Option<usize>,
     /// RadialMenu 选中扇区。
     pub radial_selected: Option<usize>,
+    /// Select 当前选项。
+    pub select_option: Option<String>,
+    /// TextArea 内容。
+    pub text_area: text_editor::Content<iced::Renderer>,
+    /// SplitPane 左侧比例。
+    pub split_ratio: f32,
     /// Loading 相位（0..1，按 Tick 推进）。
     pub loading_phase: f32,
 }
@@ -141,6 +153,9 @@ impl Default for ComponentDemo {
             list_selected: 0,
             table_selected: None,
             radial_selected: None,
+            select_option: None,
+            text_area: text_editor::Content::with_text("P3 TextArea\nType here..."),
+            split_ratio: 0.5,
             loading_phase: 0.0,
         }
     }
@@ -181,6 +196,9 @@ impl Gallery {
                     ComponentMessage::TableSelect(value) => demo.table_selected = Some(value),
                     ComponentMessage::RadialSelect(value) => demo.radial_selected = Some(value),
                     ComponentMessage::TitleBarMinimize | ComponentMessage::TitleBarClose => {}
+                    ComponentMessage::SelectOption(value) => demo.select_option = Some(value),
+                    ComponentMessage::TextArea(action) => demo.text_area.perform(action),
+                    ComponentMessage::SplitRatio(value) => demo.split_ratio = value,
                     // 40ms 一帧：2s 旋转一圈
                     ComponentMessage::Tick => {
                         demo.loading_phase =
