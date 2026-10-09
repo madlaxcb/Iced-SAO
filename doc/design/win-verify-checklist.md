@@ -1,6 +1,6 @@
 # Windows 验证清单（当前：W2～W5）
 
-- 对应产物：**v0.1.1**（gallery.exe + sample-launcher.exe，提交号 `8cafa91`，内嵌中文字体）
+- 对应产物：**v0.2.0**（gallery.exe + sample-launcher.exe，提交号 `6b5cd5f`，内嵌中文字体）
 - 产物来源：GitHub Releases zip，或 `cargo xtask win-pack` → `dist/windows-verify/`
 - 记录方式：每项在"结果"列填 `通过 / 失败 / 未测`，失败附现象描述与截图文件名
 - 截图命名：`w<关卡>-<序号>.png`（如 `w2-1.png`），与清单同目录
@@ -9,7 +9,7 @@
 ## 运行前提
 
 1. 解压到任意目录（建议路径不含中文与空格）。
-2. 打开 gallery.exe：窗口标题、侧栏、About 页三处提交号应一致且等于 `8cafa91`，与 manifest.json 一致（W1 检查项）。
+2. 打开 gallery.exe：窗口标题、侧栏、About 页三处提交号应一致且等于 `6b5cd5f`，与 manifest.json 一致（W1 检查项）。
 3. **内嵌字体**：界面中文应为 Noto Sans SC 观感（清晰、字重分明）。若出现方块、豆腐或与默认系统字体（微软雅黑）明显不同的观感，记 `失败`——这是 P9 的验证点。
 4. 双击报"缺少 VCRUNTIME140.dll"：安装 VC++ Redistributable（x64）并记录（影响 ADR-006）。
 
@@ -36,21 +36,26 @@
 
 | # | 操作 | 通过标准 | 结果 |
 |---|---|---|---|
-| 1 | 逐个走查 Button / TextInput / Checkbox / Radio / Switch / Slider / ScrollArea 各状态 | hover / active / disabled / focused 视觉与交互正确 | |
+| 1 | 逐个走查 Button / TextInput / Checkbox / Radio / Switch / Slider / ScrollArea 各状态 | hover / active / disabled / focused 视觉与交互正确；输入与拖动的值**保持不回弹** | |
 | 2 | Tooltip / ContextMenu / Modal / Toast 逐一触发 | 位置正确、层级正确、Esc / 点击外部可关闭 Modal 与菜单 | |
 | 3 | TextInput 中用微软拼音输入中文 | 候选窗位置正确、上屏一致（W0 ime 结论的组件级复核） | |
 | 4 | Tab 键在组件间移动焦点 | 焦点环可见、顺序合理 | |
+| 5 | List 三项点击切换选中 | 选中项强调描边随点击移动 | |
+| 6 | Tabs（Status / Equipment / Skills）点击切换 | 选中项橙色底，切换正确 | |
+| 7 | Badge 五档观感 | Neutral / Accent / Good / Warn / Bad 颜色语义正确 | |
+| 8 | Loading 旋转 | 连续旋转约 2s / 圈，无卡顿、无闪烁 | |
 
 ## W5：招牌组件、动效与降级（sample-launcher + gallery）
 
 | # | 操作 | 通过标准 | 结果 |
 |---|---|---|---|
 | 1 | sample-launcher Launcher 页：点击 MenuRail 图标切换面板 | 选中态橙色指示、右侧面板标题随之切换 | |
-| 2 | LoopScroll 区域滚动 | 循环顺序正确（选中标记 ◉ 依 index 移动） | |
-| 3 | Status 页 HpBar 与读数 | 分档颜色正确（≥0.5 绿 / ≥0.2 黄 / <0.2 红），读数与色一致 | |
-| 4 | Settings 页 Toast 触发 | 滑入、停留、自动消失时序符合 Motion Token（100/180/260/380ms） | |
-| 5 | gallery 侧栏 Opaque 按钮（降级开关） | 开启后半透明材质变不透明，布局与内容**不**变化 | |
-| 6 | 启动序列动画（打开 sample-launcher） | Enter→Brand→Content 顺序入场，无闪烁 | |
+| 2 | 键盘 ↑↓（或 ←→）操作 MenuRail | 选中项环形移动并联动面板（无选中时按 ↑ 落到最后一项） | |
+| 3 | LoopScroll 区域滚动 | 循环顺序正确（选中标记 ◉ 依 index 移动） | |
+| 4 | Status 页 HpBar / Ring / Readout | 分档颜色正确（≥0.5 绿 / ≥0.2 黄 / <0.2 红），读数与色一致 | |
+| 5 | Settings 页 Toast 触发 | 滑入、停留、自动消失时序符合 Motion Token（100/180/260/380ms） | |
+| 6 | gallery 侧栏 Opaque 按钮（降级开关） | 开启后半透明材质变不透明，布局与内容**不**变化 | |
+| 7 | 启动序列动画（打开 sample-launcher） | Enter→Brand→Content 顺序入场，无闪烁 | |
 
 ## W6（预置：M7 最终冒烟）
 
