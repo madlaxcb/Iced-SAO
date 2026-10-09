@@ -121,6 +121,13 @@ fn git_sha() -> String {
     try_out("git", &["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "uncommitted".into())
 }
 
+/// 发布版本：取最近 tag 名去掉 v 前缀（无 tag 时回退 0.1.0）。
+fn release_version() -> String {
+    try_out("git", &["describe", "--tags", "--abbrev=0"])
+        .map(|t| t.trim_start_matches('v').to_string())
+        .unwrap_or_else(|| "0.1.0".into())
+}
+
 // ---------- doctor ----------
 
 fn cmd_doctor() {
@@ -499,14 +506,17 @@ fn cmd_dist() {
     fs::write(out_dir.join("SHA256SUMS.txt"), sums).expect("write checksums");
 
     let sha = git_sha();
+    let version = release_version();
     let manifest = format!(
-        "{{\n  \"package\": \"orb-windows-x64\",\n  \"version\": \"0.1.0\",\n  \"git_commit\": \"{sha}\",\n  \"target\": \"{MSVC}\",\n  \"profile\": \"release\",\n  \"multi_monitor\": \"not verified by request\",\n  \"contents\": [{}]\n}}\n",
+        "{{\n  \"package\": \"orb-windows-x64\",\n  \"version\": \"{version}\",\n  \"git_commit\": \"{sha}\",\n  \"target\": \"{MSVC}\",\n  \"profile\": \"release\",\n  \"multi_monitor\": \"not verified by request\",\n  \"contents\": [{}]\n}}\n",
         contents.iter().map(|name| format!("\"{name}\"")).collect::<Vec<_>>().join(", ")
     );
     fs::write(out_dir.join("manifest.json"), manifest).expect("write dist manifest");
     fs::write(
         out_dir.join("README.txt"),
-        "orb Windows x64 release 0.1.0\n\nDemos: sample-launcher.exe (showcase app), gallery.exe (component gallery).\nMulti-monitor behavior is intentionally not verified in this release.\nVerify with: sha256sum -c SHA256SUMS.txt\nSee manifest.json and THIRD_PARTY_LICENSES.txt.\n",
+        format!(
+            "orb Windows x64 release {version}\n\nDemos: sample-launcher.exe (showcase app), gallery.exe (component gallery).\nMulti-monitor behavior is intentionally not verified in this release.\nVerify with: sha256sum -c SHA256SUMS.txt\nSee manifest.json and THIRD_PARTY_LICENSES.txt.\n"
+        ),
     )
     .expect("write dist readme");
     println!("dist done -> {}", out_dir.display());
