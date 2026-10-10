@@ -1,6 +1,6 @@
-# Windows 验证清单（当前：W2～W5）
+# Windows 验证清单（当前：W1～W5）
 
-- 对应产物：**v0.3.0**（gallery.exe + sample-launcher.exe，内嵌中文字体；提交号以发布产物为准）
+- 对应产物：**v0.4.0**（gallery.exe + sample-launcher.exe，内嵌中文字体；提交号以发布产物为准）
 - 产物来源：GitHub Releases zip，或 `cargo xtask win-pack` → `dist/windows-verify/`
 - 记录方式：每项在"结果"列填 `通过 / 失败 / 未测`，失败附现象描述与截图文件名
 - 截图命名：`w<关卡>-<序号>.png`（如 `w2-1.png`），与清单同目录
@@ -9,9 +9,23 @@
 ## 运行前提
 
 1. 解压到任意目录（建议路径不含中文与空格）。
-2. 打开 gallery.exe：窗口标题、侧栏、About 页三处提交号应一致且等于 `6b5cd5f`，与 manifest.json 一致（W1 检查项）。
+2. 打开 gallery.exe：窗口标题、侧栏、About 页三处提交号应一致且等于 manifest.json 中的提交号。
 3. **内嵌字体**：界面中文应为 Noto Sans SC 观感（清晰、字重分明）。若出现方块、豆腐或与默认系统字体（微软雅黑）明显不同的观感，记 `失败`——这是 P9 的验证点。
 4. 双击报"缺少 VCRUNTIME140.dll"：安装 VC++ Redistributable（x64）并记录（影响 ADR-006）。
+
+## W1：窗口通路与标题栏（gallery + sample-launcher）
+
+| # | 操作 | 通过标准 | 结果 |
+|---|---|---|---|
+| 1 | 打开 gallery.exe 与 sample-launcher.exe | 两个程序均能启动，窗口内提交号与 manifest.json 一致 | |
+| 2 | 拖动自绘标题栏 | 窗口跟随鼠标移动，松开后停止 | |
+| 3 | 双击自绘标题栏 | 窗口在普通与最大化状态之间切换 | |
+| 4 | 点击最小化按钮 | 窗口最小化，可从任务栏恢复 | |
+| 5 | 点击关闭按钮 | 对应应用正常退出，无崩溃或残留进程 | |
+| 6 | 拖动窗口四边调整大小 | 系统缩放与窗口内容保持正常；若行为异常，记录为 PLATFORM_FAIL | |
+| 7 | 将窗口贴近屏幕边缘 | Windows Snap 行为正常；若行为异常，记录为 PLATFORM_FAIL | |
+
+若 W1 的四边缩放或 Snap 需要平台专有补偿，按 [ADR-007](../adr/adr-007-native-window-actions.md) 评估是否升级 `orb-platform`；在确认前不添加平台补偿代码。
 
 ## W2：字体渲染与主题（gallery · Tokens 页）
 

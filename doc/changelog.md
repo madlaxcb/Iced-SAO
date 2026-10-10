@@ -6,12 +6,14 @@
 
 ### Added
 
+- 应用层 TitleBar 窗口动作：拖动、双击最大化、最小化、关闭
+- `orb-core::WindowCommand` 与 ADR-007 窗口抽象升级条件
 - `select`：主题化下拉选择
 - `text_area`：基于 iced `text_editor` 的多行编辑器
 - `split_pane`：安全比例的水平分栏布局
 - `background_layer`：支持 Opaque 降级的主题背景层
 - Gallery Components 页接入 Select / TextArea / SplitPane / BackgroundLayer
-- 增加四项组件纯逻辑边界测试与 Windows 走查项目
+- 增加四项组件纯逻辑边界测试与 W1～W5 Windows 走查项目
 
 [v0.4.0]: https://github.com/madlaxcb/Iced-SAO/releases/tag/v0.4.0
 

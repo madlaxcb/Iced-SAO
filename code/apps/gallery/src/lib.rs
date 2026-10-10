@@ -9,7 +9,7 @@ pub mod primitives;
 pub mod theme_file;
 mod window_commands;
 
-use iced::widget::{button, column, container, row, text, text_editor, Space};
+use iced::widget::{button, column, container, row, scrollable, text, text_editor, Space};
 use iced::{Element, Task};
 use orb_theme::{OrbTheme, Variant};
 use orb_tokens::{rgba_f32, Rgba};
@@ -316,7 +316,13 @@ impl Gallery {
             ])
             .width(iced::Fill)
             .padding(12),
-            container(body).width(iced::Fill),
+            container(
+                scrollable(body)
+                    .height(iced::Fill)
+                    .width(iced::Fill)
+                    .style(orb_theme::style_scrollable),
+            )
+            .width(iced::Fill),
         ];
 
         row![
