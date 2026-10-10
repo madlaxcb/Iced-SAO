@@ -227,12 +227,7 @@ impl Gallery {
                     ComponentMessage::ListSelect(value) => demo.list_selected = value,
                     ComponentMessage::TableSelect(value) => demo.table_selected = Some(value),
                     ComponentMessage::RadialSelect(value) => demo.radial_selected = Some(value),
-                    ComponentMessage::TitleBarMinimize => {
-                        return window_commands::apply(orb_core::WindowCommand::Minimize);
-                    }
-                    ComponentMessage::TitleBarClose => {
-                        return window_commands::apply(orb_core::WindowCommand::Close);
-                    }
+                    ComponentMessage::TitleBarMinimize | ComponentMessage::TitleBarClose => {}
                     ComponentMessage::SelectOption(value) => demo.select_option = Some(value),
                     ComponentMessage::TextArea(action) => demo.text_area.perform(action),
                     ComponentMessage::SplitRatio(value) => demo.split_ratio = value,
@@ -275,17 +270,25 @@ impl Gallery {
         } else {
             iced::Subscription::none()
         };
+        let overlay_keyboard = iced::keyboard::listen().filter_map(|event| match event {
+            iced::keyboard::Event::KeyPressed {
+                key: iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
+                ..
+            } => Some(Message::Overlay(overlays::OverlayMessage::Escape)),
+            _ => None,
+        });
         #[cfg(debug_assertions)]
         {
             iced::Subscription::batch([
                 iced::Subscription::run(theme_file::theme_stream),
                 motion,
                 component_tick,
+                overlay_keyboard,
             ])
         }
         #[cfg(not(debug_assertions))]
         {
-            iced::Subscription::batch([motion, component_tick])
+            iced::Subscription::batch([motion, component_tick, overlay_keyboard])
         }
     }
 

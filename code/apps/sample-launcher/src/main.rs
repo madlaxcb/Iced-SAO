@@ -4,7 +4,7 @@
 
 use iced::widget::{button, checkbox, column, container, mouse_area, row, text, Space};
 use iced::{Element, Length, Task};
-use orb_core::InteractionState;
+use orb_core::{InteractionState, StartupPhase, StartupSequence};
 use orb_theme::OrbTheme;
 use orb_widgets::{
     card, divider, hp_bar, hp_bar_band, loop_scroll, loop_scroll_next, loop_scroll_prev,
@@ -13,7 +13,7 @@ use orb_widgets::{
 };
 
 /// LoopScroll 条带占位数量。
-const MENU_ITEMS: usize = 5;
+const MENU_ITEMS: usize = 3;
 
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
@@ -83,6 +83,7 @@ enum Message {
     ToggleTheme,
     ToggleReducedMotion(bool),
     OpenDialog,
+    CloseDialog,
     ShowToast,
     Tick,
     MenuSelect(usize),
@@ -104,6 +105,7 @@ struct App {
     loop_index: usize,
     interaction: InteractionState,
     language: Language,
+    startup: StartupSequence,
 }
 
 impl App {
@@ -118,6 +120,7 @@ impl App {
             loop_index: 0,
             interaction: InteractionState::new(),
             language: Language::Chinese,
+            startup: StartupSequence::new(),
         }
     }
 
@@ -133,8 +136,18 @@ impl App {
             Message::ToggleLanguage => self.language = self.language.toggle(),
             Message::ToggleReducedMotion(value) => self.reduced_motion = value,
             Message::OpenDialog => self.dialog_open = true,
+            Message::CloseDialog => self.dialog_open = false,
             Message::ShowToast => self.toast_visible = true,
-            Message::Tick => self.toast_visible = false,
+            Message::Tick => {
+                self.toast_visible = false;
+                if self.reduced_motion {
+                    for _ in 0..3 {
+                        self.startup.advance(std::time::Duration::from_secs(1));
+                    }
+                } else {
+                    self.startup.advance(std::time::Duration::from_millis(40));
+                }
+            }
             Message::MenuSelect(index) => self.menu_selected = Some(index),
             Message::MenuNext => {
                 self.menu_selected = menu_rail_next(self.menu_selected, MENU_ITEMS);
@@ -215,6 +228,24 @@ impl App {
     }
 
     fn launcher_view(&self) -> Element<'_, Message, OrbTheme> {
+        if self.startup.phase() != StartupPhase::Complete {
+            let phase = match self.startup.phase() {
+                StartupPhase::Enter => "Enter / 进入",
+                StartupPhase::Brand => "Brand / 品牌",
+                StartupPhase::Content => "Content / 内容",
+                StartupPhase::Complete => "Complete / 完成",
+            };
+            return card(
+                column![
+                    section_header(text("ORB / SAO").size(32)),
+                    text(phase).size(22),
+                    text("Startup sequence / 启动序列"),
+                ]
+                .spacing(16),
+            )
+            .padding(48)
+            .into();
+        }
         let icons: Vec<Element<'_, Message, OrbTheme>> = ["W", "I", "S"]
             .iter()
             .map(|label| text(*label).size(18).into())
@@ -276,6 +307,12 @@ impl App {
                         .spacing(8),
                 ]
                 .spacing(24),
+                row![
+                    column![text("72 / 100"), hp_bar(0.72, 180.0, 16.0)],
+                    column![text("18 / 100"), hp_bar(0.18, 180.0, 16.0)],
+                    column![text("5 / 100"), hp_bar(0.05, 180.0, 16.0)],
+                ]
+                .spacing(12),
                 hp_bar(0.72, 320.0, 16.0),
                 text(format!("HpBar band: {:?}", hp_bar_band(0.72))),
                 divider::<Message>(),
@@ -322,6 +359,7 @@ impl App {
                     modal(column![
                         text("Dialog").size(20),
                         text("This demonstrates the in-window modal surface."),
+                        button("Close").on_press(Message::CloseDialog),
                     ])
                 } else {
                     modal(text("Dialog is closed"))
@@ -399,7 +437,7 @@ mod tests {
 
         // 键盘步进：环形 + None 兜底（menu_rail_next/prev）
         let _ = app.update(Message::MenuNext);
-        assert_eq!(app.menu_selected, Some(3));
+        assert_eq!(app.menu_selected, Some(0));
         let _ = app.update(Message::MenuPrev);
         assert_eq!(app.menu_selected, Some(2));
         app.menu_selected = None;

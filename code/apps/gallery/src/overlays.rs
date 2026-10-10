@@ -13,6 +13,7 @@ pub struct OverlayDemo {
     startup: StartupSequence,
     toast: Option<ToastState>,
     interaction: InteractionState,
+    modal_open: bool,
 }
 
 impl OverlayDemo {
@@ -22,6 +23,7 @@ impl OverlayDemo {
             startup: StartupSequence::new(),
             toast: None,
             interaction: InteractionState::new(),
+            modal_open: false,
         }
     }
 
@@ -32,6 +34,8 @@ impl OverlayDemo {
             OverlayMessage::ShowToast => {
                 self.toast = Some(ToastState::visible_for(Duration::from_millis(380)))
             }
+            OverlayMessage::OpenModal => self.modal_open = true,
+            OverlayMessage::Escape => self.modal_open = false,
             OverlayMessage::Hover(value) => self.interaction.apply(InteractionEvent::Hover(value)),
             OverlayMessage::Press(value) => self.interaction.apply(InteractionEvent::Press(value)),
             OverlayMessage::Focus(value) => self.interaction.apply(InteractionEvent::Focus(value)),
@@ -62,10 +66,15 @@ impl OverlayDemo {
             text("Duplicate"),
             text("Delete"),
         ]);
-        let modal_preview = modal(column![
-            text("Modal").size(18),
-            text("Focused dialog surface with explicit dismissal."),
-        ]);
+        let modal_preview = if self.modal_open {
+            modal(column![
+                text("Modal").size(18),
+                text("Focused dialog surface with explicit dismissal."),
+                button("Close").on_press(Message::Overlay(OverlayMessage::Escape)),
+            ])
+        } else {
+            modal(button("Open modal").on_press(Message::Overlay(OverlayMessage::OpenModal)))
+        };
         let toast_preview = toast(
             row![text("Toast: saved successfully"), text("  ×")],
             ToastLevel::Success,
@@ -124,6 +133,10 @@ pub enum OverlayMessage {
     AdvanceStartup,
     /// 显示 Toast。
     ShowToast,
+    /// 打开 Modal。
+    OpenModal,
+    /// 关闭当前浮层。
+    Escape,
     /// 设置 hover 状态。
     Hover(bool),
     /// 设置 press 状态。

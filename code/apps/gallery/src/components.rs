@@ -185,7 +185,7 @@ pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
             .on_double_click(Message::WindowCommand(
                 orb_core::WindowCommand::ToggleMaximize,
             )),
-            text("TitleBar actions use iced window tasks; platform-specific behavior stays deferred."),
+            text("TitleBar demo buttons are non-destructive; window actions stay in the app title bar."),
             divider::<Message>(),
             text("P3: Select / TextArea / SplitPane / BackgroundLayer").size(18),
             select(

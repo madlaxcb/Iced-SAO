@@ -368,7 +368,7 @@ pub fn split_pane<'a, Message: 'a>(
     split_pane_columns(first, divider::<Message>(), second, split_pane_ratio(ratio)).into()
 }
 
-/// 创建可拖拽水平分栏。中间窄滑块是分隔条，拖动后回调新的 20%..80% 比例。
+/// 创建可拖拽水平分栏。中间滑块是分隔条，拖动后回调新的 20%..80% 比例。
 pub fn split_pane_control<'a, Message: Clone + 'a>(
     first: impl Into<Element<'a, Message, OrbTheme>>,
     second: impl Into<Element<'a, Message, OrbTheme>>,
@@ -378,7 +378,7 @@ pub fn split_pane_control<'a, Message: Clone + 'a>(
     let ratio = split_pane_ratio(ratio);
     let handle = slider(0.2..=0.8, ratio, on_change)
         .step(0.01_f32)
-        .width(Length::Fixed(14.0))
+        .width(Length::Fixed(48.0))
         .style(orb_theme::style_slider);
     split_pane_columns(first, handle, second, ratio).into()
 }
@@ -471,15 +471,25 @@ pub fn scroll_area<'a, Message>(
 }
 
 /// 创建一个圆形按钮。
-pub fn circle_button<'a, Message>(
+pub fn circle_button<'a, Message: 'a>(
     content: impl Into<Element<'a, Message, OrbTheme>>,
     size: f32,
     on_press: Option<Message>,
 ) -> button::Button<'a, Message, OrbTheme> {
+    let content = container(content)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .align_x(iced::alignment::Horizontal::Center)
+        .align_y(iced::alignment::Vertical::Center);
     let mut result = button(content)
         .width(Length::Fixed(size))
         .height(Length::Fixed(size))
-        .padding(0);
+        .padding(0)
+        .style(move |theme: &OrbTheme, status| {
+            let mut style = orb_theme::style_button(theme, status);
+            style.border.radius = (size / 2.0).into();
+            style
+        });
     if let Some(message) = on_press {
         result = result.on_press(message);
     }
@@ -574,10 +584,9 @@ impl<Message> canvas::Program<Message, OrbTheme> for HpBarProgram {
             frame.fill(&track, Color::from_rgba8(255, 255, 255, 0.18));
             let fill_width = frame.width() * self.value;
             if fill_width > 0.0 {
-                let fill = canvas::Path::rounded_rectangle(
+                let fill = canvas::Path::rectangle(
                     Point::ORIGIN,
-                    iced::Size::new(fill_width.max(frame.height()), frame.height()),
-                    radius.into(),
+                    iced::Size::new(fill_width, frame.height()),
                 );
                 frame.fill(&fill, color);
             }
@@ -1103,15 +1112,30 @@ impl<Message> canvas::Program<Message, OrbTheme> for RadialProgram<'_, Message> 
             if let Some(selected) = self.selected {
                 if (selected as f32) < count {
                     let start = -std::f32::consts::FRAC_PI_2 + sector * selected as f32;
+                    let inner_radius = radius * 0.5;
+                    let outer_start = Point::new(
+                        center.x + radius * start.cos(),
+                        center.y + radius * start.sin(),
+                    );
+                    let inner_end = Point::new(
+                        center.x + inner_radius * (start + sector).cos(),
+                        center.y + inner_radius * (start + sector).sin(),
+                    );
                     let wedge = canvas::Path::new(|path| {
-                        path.move_to(center);
+                        path.move_to(outer_start);
                         path.arc(canvas::path::Arc {
                             center,
                             radius,
                             start_angle: iced::Radians(start),
                             end_angle: iced::Radians(start + sector),
                         });
-                        path.line_to(center);
+                        path.line_to(inner_end);
+                        path.arc(canvas::path::Arc {
+                            center,
+                            radius: inner_radius,
+                            start_angle: iced::Radians(start + sector),
+                            end_angle: iced::Radians(start),
+                        });
                         path.close();
                     });
                     frame.fill(
@@ -1215,12 +1239,12 @@ pub fn title_bar<'a, Message: Clone + 'a>(
         .push(container(text(title.to_string()).size(typography.sm)).padding([8, 12]))
         .push(iced::widget::Space::new().width(Length::Fill))
         .push(circle_button(
-            text("−".to_string()).size(typography.sm),
+            text("-").size(typography.sm),
             28.0,
             Some(on_minimize),
         ))
         .push(circle_button(
-            text("✕".to_string()).size(typography.sm),
+            text("x").size(typography.sm),
             28.0,
             Some(on_close),
         ))

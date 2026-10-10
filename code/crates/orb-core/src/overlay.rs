@@ -106,13 +106,16 @@ impl StartupSequence {
     /// 推进启动序列，并在阶段完成时切换到下一阶段。
     pub fn advance(&mut self, delta: Duration) {
         self.elapsed += delta;
-        let threshold = match self.phase {
-            StartupPhase::Enter => Duration::from_millis(100),
-            StartupPhase::Brand => Duration::from_millis(180),
-            StartupPhase::Content => Duration::from_millis(260),
-            StartupPhase::Complete => Duration::ZERO,
-        };
-        if self.phase != StartupPhase::Complete && self.elapsed >= threshold {
+        while self.phase != StartupPhase::Complete {
+            let threshold = match self.phase {
+                StartupPhase::Enter => Duration::from_millis(100),
+                StartupPhase::Brand => Duration::from_millis(180),
+                StartupPhase::Content => Duration::from_millis(260),
+                StartupPhase::Complete => Duration::ZERO,
+            };
+            if self.elapsed < threshold {
+                break;
+            }
             self.elapsed -= threshold;
             self.phase = match self.phase {
                 StartupPhase::Enter => StartupPhase::Brand,
@@ -178,6 +181,13 @@ mod tests {
         startup.advance(Duration::from_millis(180));
         assert_eq!(startup.phase(), StartupPhase::Content);
         startup.advance(Duration::from_millis(260));
+        assert_eq!(startup.phase(), StartupPhase::Complete);
+    }
+
+    #[test]
+    fn startup_sequence_consumes_large_delta() {
+        let mut startup = StartupSequence::new();
+        startup.advance(Duration::from_secs(1));
         assert_eq!(startup.phase(), StartupPhase::Complete);
     }
 
