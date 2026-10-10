@@ -44,6 +44,37 @@ impl Page {
             Self::About => "About",
         }
     }
+
+    fn label_zh(self) -> &'static str {
+        match self {
+            Self::Launcher => "启动器",
+            Self::Status => "状态",
+            Self::Settings => "设置",
+            Self::About => "关于",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Language {
+    Chinese,
+    English,
+}
+
+impl Language {
+    fn toggle(self) -> Self {
+        match self {
+            Self::Chinese => Self::English,
+            Self::English => Self::Chinese,
+        }
+    }
+
+    fn button_label(self) -> &'static str {
+        match self {
+            Self::Chinese => "English",
+            Self::English => "中文",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -60,6 +91,7 @@ enum Message {
     LoopNext,
     LoopPrev,
     WindowCommand(orb_core::WindowCommand),
+    ToggleLanguage,
 }
 
 struct App {
@@ -71,6 +103,7 @@ struct App {
     menu_selected: Option<usize>,
     loop_index: usize,
     interaction: InteractionState,
+    language: Language,
 }
 
 impl App {
@@ -84,6 +117,7 @@ impl App {
             menu_selected: Some(0),
             loop_index: 0,
             interaction: InteractionState::new(),
+            language: Language::Chinese,
         }
     }
 
@@ -96,6 +130,7 @@ impl App {
                     orb_theme::Variant::Dark => OrbTheme::light(),
                 }
             }
+            Message::ToggleLanguage => self.language = self.language.toggle(),
             Message::ToggleReducedMotion(value) => self.reduced_motion = value,
             Message::OpenDialog => self.dialog_open = true,
             Message::ShowToast => self.toast_visible = true,
@@ -142,12 +177,13 @@ impl App {
     fn view(&self) -> Element<'_, Message, OrbTheme> {
         let navigation = column![
             text("ORB LAUNCHER").size(18),
-            nav_button(Page::Launcher, self.page),
-            nav_button(Page::Status, self.page),
-            nav_button(Page::Settings, self.page),
-            nav_button(Page::About, self.page),
+            nav_button(Page::Launcher, self.page, self.language),
+            nav_button(Page::Status, self.page, self.language),
+            nav_button(Page::Settings, self.page, self.language),
+            nav_button(Page::About, self.page, self.language),
             Space::new().height(Length::Fill),
             button("Light / Dark").on_press(Message::ToggleTheme),
+            button(self.language.button_label()).on_press(Message::ToggleLanguage),
         ]
         .spacing(8)
         .padding(16)
@@ -303,11 +339,19 @@ impl App {
     }
 }
 
-fn nav_button(page: Page, current: Page) -> iced::widget::Button<'static, Message, OrbTheme> {
+fn nav_button(
+    page: Page,
+    current: Page,
+    language: Language,
+) -> iced::widget::Button<'static, Message, OrbTheme> {
+    let page_label = match language {
+        Language::Chinese => page.label_zh(),
+        Language::English => page.label(),
+    };
     let label = if page == current {
-        format!("▶ {}", page.label())
+        format!("▶ {page_label}")
     } else {
-        page.label().into()
+        page_label.into()
     };
     button(text(label))
         .on_press(Message::Select(page))

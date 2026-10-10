@@ -28,6 +28,31 @@ pub enum ThemeVariant {
     Dark,
 }
 
+/// Gallery 验证界面语言。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Language {
+    /// 中文界面。
+    Chinese,
+    /// English interface.
+    English,
+}
+
+impl Language {
+    fn toggle(self) -> Self {
+        match self {
+            Self::Chinese => Self::English,
+            Self::English => Self::Chinese,
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Chinese => "中文",
+            Self::English => "English",
+        }
+    }
+}
+
 impl ThemeVariant {
     fn from(v: Variant) -> Self {
         match v {
@@ -76,6 +101,8 @@ pub enum Message {
     ThemeFileChanged,
     /// 执行应用层窗口动作。
     WindowCommand(orb_core::WindowCommand),
+    /// 切换中英文界面。
+    ToggleLanguage,
 }
 
 /// Components 页交互消息（演示控件为真实可交互，非静态展示）。
@@ -167,6 +194,7 @@ impl Default for ComponentDemo {
 /// Gallery 应用状态。
 pub struct Gallery {
     theme: OrbTheme,
+    language: Language,
     page: Page,
     component_demo: ComponentDemo,
     overlay_demo: overlays::OverlayDemo,
@@ -178,6 +206,7 @@ impl Gallery {
         theme_file::ensure_samples();
         Self {
             theme: theme_file::load_or_default(ThemeVariant::Light),
+            language: Language::Chinese,
             page: Page::Tokens,
             component_demo: ComponentDemo::default(),
             overlay_demo: overlays::OverlayDemo::new(),
@@ -224,6 +253,7 @@ impl Gallery {
                 )));
             }
             Message::ToggleOpaque => self.theme.opaque_fallback = !self.theme.opaque_fallback,
+            Message::ToggleLanguage => self.language = self.language.toggle(),
             Message::ThemeFileChanged => {
                 let variant = ThemeVariant::from(self.theme.variant);
                 let opaque_fallback = self.theme.opaque_fallback;
@@ -278,15 +308,74 @@ impl Gallery {
                 .on_press(Message::ToggleOpaque)
                 .width(iced::Fill),
             )
+            .push(
+                button(text(if self.language == Language::Chinese {
+                    "English"
+                } else {
+                    "中文"
+                }))
+                .on_press(Message::ToggleLanguage)
+                .width(iced::Fill),
+            )
             .spacing(4);
 
         let nav: iced::widget::Column<'_, Message, OrbTheme> = iced::widget::Column::new()
-            .push(container(text("orb gallery").size(16)).padding(12))
-            .push(Self::nav_button(Page::Tokens, "Tokens", self.page))
-            .push(Self::nav_button(Page::Components, "Components", self.page))
-            .push(Self::nav_button(Page::Overlays, "Overlays", self.page))
-            .push(Self::nav_button(Page::About, "About", self.page))
-            .push(Self::nav_button(Page::Primitives, "Primitives", self.page))
+            .push(
+                container(
+                    text(if self.language == Language::Chinese {
+                        "orb 组件陈列馆"
+                    } else {
+                        "orb gallery"
+                    })
+                    .size(16),
+                )
+                .padding(12),
+            )
+            .push(Self::nav_button(
+                Page::Tokens,
+                if self.language == Language::Chinese {
+                    "令牌 / Tokens"
+                } else {
+                    "Tokens / 令牌"
+                },
+                self.page,
+            ))
+            .push(Self::nav_button(
+                Page::Components,
+                if self.language == Language::Chinese {
+                    "组件 / Components"
+                } else {
+                    "Components / 组件"
+                },
+                self.page,
+            ))
+            .push(Self::nav_button(
+                Page::Overlays,
+                if self.language == Language::Chinese {
+                    "浮层 / Overlays"
+                } else {
+                    "Overlays / 浮层"
+                },
+                self.page,
+            ))
+            .push(Self::nav_button(
+                Page::About,
+                if self.language == Language::Chinese {
+                    "关于 / About"
+                } else {
+                    "About / 关于"
+                },
+                self.page,
+            ))
+            .push(Self::nav_button(
+                Page::Primitives,
+                if self.language == Language::Chinese {
+                    "原语 / Primitives"
+                } else {
+                    "Primitives / 原语"
+                },
+                self.page,
+            ))
             .push(Space::new().height(iced::Length::Fill))
             .push(container(controls).padding(12))
             .push(container(text(format!("commit {GIT_SHA}")).size(11)).padding(12))
@@ -303,7 +392,8 @@ impl Gallery {
         let content: iced::widget::Column<'_, Message, OrbTheme> = column![
             container(row![
                 text(format!(
-                    "{:?}{}",
+                    "{} · {:?}{}",
+                    self.language.label(),
                     ThemeVariant::from(self.theme.variant),
                     if self.theme.opaque_fallback {
                         "  (opaque fallback)"

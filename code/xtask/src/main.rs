@@ -367,6 +367,13 @@ fn layout_ok() -> bool {
         "windows-verify/manifest.json",
         "windows-verify/README.txt",
         "windows-verify/win-verify-checklist.md",
+        "windows-verify/win-verify-checklist.en.md",
+        "windows-verify/TEMPLATE.md",
+        "windows-verify/TEMPLATE.en.md",
+        "windows-x64/win-verify-checklist.md",
+        "windows-x64/win-verify-checklist.en.md",
+        "windows-x64/TEMPLATE.md",
+        "windows-x64/TEMPLATE.en.md",
         "windows-x64/gallery.exe",
         "windows-x64/sample-launcher.exe",
         "windows-x64/manifest.json",
@@ -443,6 +450,9 @@ fn cmd_check_layout() -> ExitCode {
 
 fn cmd_win_pack() {
     let out_dir = repo().join("dist/windows-verify");
+    if out_dir.exists() {
+        fs::remove_dir_all(&out_dir).expect("clear dist/windows-verify");
+    }
     fs::create_dir_all(&out_dir).expect("create dist/windows-verify");
 
     let src = dev().join("target").join(MSVC).join("release");
@@ -455,21 +465,43 @@ fn cmd_win_pack() {
     }
 
     let sha = git_sha();
+    let verify_contents = [
+        "gallery.exe",
+        "sample-launcher.exe",
+        "win-verify-checklist.md",
+        "win-verify-checklist.en.md",
+        "TEMPLATE.md",
+        "TEMPLATE.en.md",
+        "README.txt",
+    ];
     let manifest = format!(
-        "{{\n  \"package\": \"orb-windows-verify\",\n  \"git_commit\": \"{sha}\",\n  \"target\": \"{MSVC}\",\n  \"profile\": \"release\",\n  \"rustc\": \"{}\",\n  \"built_at_epoch\": {},\n  \"contents\": [\"gallery.exe\", \"sample-launcher.exe\"]\n}}\n",
+        "{{\n  \"package\": \"orb-windows-verify\",\n  \"git_commit\": \"{sha}\",\n  \"target\": \"{MSVC}\",\n  \"profile\": \"release\",\n  \"rustc\": \"{}\",\n  \"built_at_epoch\": {},\n  \"contents\": [{}]\n}}\n",
         try_out("rustc", &["-V"]).unwrap_or_default(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or_default(),
+        verify_contents
+            .iter()
+            .map(|name| format!("\"{name}\""))
+            .collect::<Vec<_>>()
+            .join(", "),
     );
     fs::write(out_dir.join("manifest.json"), manifest).expect("write manifest");
 
-    let doc = "win-verify-checklist.md";
-    let from = repo().join("doc/design").join(doc);
-    if from.exists() {
-        fs::copy(&from, out_dir.join(doc)).expect("copy checklist");
+    for doc in ["win-verify-checklist.md", "win-verify-checklist.en.md"] {
+        let from = repo().join("doc/design").join(doc);
+        if from.exists() {
+            fs::copy(&from, out_dir.join(doc)).expect("copy checklist");
+        }
     }
+    for template in ["TEMPLATE.md", "TEMPLATE.en.md"] {
+        let from = repo().join("doc/test-reports/win-verify").join(template);
+        if from.exists() {
+            fs::copy(&from, out_dir.join(template)).expect("copy report template");
+        }
+    }
+    fs::write(out_dir.join("README.txt"), verify_readme()).expect("write verify readme");
     println!("win-pack done (commit {sha}) -> {}", out_dir.display());
 }
 
@@ -477,6 +509,9 @@ fn cmd_win_pack() {
 
 fn cmd_dist() {
     let out_dir = repo().join("dist/windows-x64");
+    if out_dir.exists() {
+        fs::remove_dir_all(&out_dir).expect("clear dist/windows-x64");
+    }
     fs::create_dir_all(&out_dir).expect("create dist/windows-x64");
     let src = dev().join("target").join(MSVC).join("release");
     let mut contents = Vec::new();
@@ -508,19 +543,57 @@ fn cmd_dist() {
 
     let sha = git_sha();
     let version = release_version();
+    let package_contents = [
+        "gallery.exe",
+        "sample-launcher.exe",
+        "README.txt",
+        "win-verify-checklist.md",
+        "win-verify-checklist.en.md",
+        "TEMPLATE.md",
+        "TEMPLATE.en.md",
+        "THIRD_PARTY_LICENSES.txt",
+        "SHA256SUMS.txt",
+        "VIRUS-SCAN.md",
+    ];
     let manifest = format!(
         "{{\n  \"package\": \"orb-windows-x64\",\n  \"version\": \"{version}\",\n  \"git_commit\": \"{sha}\",\n  \"target\": \"{MSVC}\",\n  \"profile\": \"release\",\n  \"multi_monitor\": \"not verified by request\",\n  \"contents\": [{}]\n}}\n",
-        contents.iter().map(|name| format!("\"{name}\"")).collect::<Vec<_>>().join(", ")
+        package_contents
+            .iter()
+            .map(|name| format!("\"{name}\""))
+            .collect::<Vec<_>>()
+            .join(", ")
     );
     fs::write(out_dir.join("manifest.json"), manifest).expect("write dist manifest");
     fs::write(
         out_dir.join("README.txt"),
         format!(
-            "orb Windows x64 release {version}\n\nDemos: sample-launcher.exe (showcase app), gallery.exe (component gallery).\nMulti-monitor behavior is intentionally not verified in this release.\nVerify with: sha256sum -c SHA256SUMS.txt\nSee manifest.json and THIRD_PARTY_LICENSES.txt.\n"
+            "{}\n\n{}",
+            release_readme(version.as_str()),
+            release_readme_en(version.as_str())
         ),
     )
     .expect("write dist readme");
+    for doc in ["win-verify-checklist.md", "win-verify-checklist.en.md"] {
+        let from = repo().join("doc/design").join(doc);
+        fs::copy(&from, out_dir.join(doc)).expect("copy release checklist");
+    }
+    for template in ["TEMPLATE.md", "TEMPLATE.en.md"] {
+        let from = repo().join("doc/test-reports/win-verify").join(template);
+        fs::copy(&from, out_dir.join(template)).expect("copy release report template");
+    }
     println!("dist done -> {}", out_dir.display());
+}
+
+fn verify_readme() -> &'static str {
+    "orb Windows verification package\n\nRun gallery.exe for the bilingual component gallery and sample-launcher.exe for the bilingual showcase. Use win-verify-checklist.md (中文) or win-verify-checklist.en.md (English), then record results with TEMPLATE.md or TEMPLATE.en.md.\n\nprobe.exe is intentionally excluded from this package; it remains a W0 development probe."
+}
+
+fn release_readme(version: &str) -> String {
+    format!("orb Windows x64 release {version}\n\n演示程序：sample-launcher.exe（示例启动器）、gallery.exe（组件验证馆）。\n左侧语言按钮可切换中文 / English。\n验证材料：win-verify-checklist.md、TEMPLATE.md。\n多显示器行为按用户要求未验证。\n校验：sha256sum -c SHA256SUMS.txt")
+}
+
+fn release_readme_en(version: &str) -> String {
+    format!("orb Windows x64 release {version}\n\nDemos: sample-launcher.exe (showcase) and gallery.exe (component verification).\nUse the language button to switch between Chinese and English.\nVerification materials: win-verify-checklist.en.md and TEMPLATE.en.md.\nMulti-monitor behavior is intentionally not verified.\nVerify with: sha256sum -c SHA256SUMS.txt")
 }
 
 // ---------- fonts（P9：字体子集化）----------
