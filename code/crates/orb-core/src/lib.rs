@@ -3,10 +3,13 @@
 pub mod animation;
 pub mod overlay;
 pub mod pixel;
+/// 跨应用复用的窗口命令语义。
+pub mod window;
 
 pub use animation::{Clock, Easing, ManualClock, Sequence, Stagger, Tween};
 pub use overlay::{InteractionEvent, InteractionState, StartupPhase, StartupSequence, ToastState};
 pub use pixel::{pixel_scale, snap, snap_rect};
+pub use window::WindowCommand;
 
 #[cfg(test)]
 mod tests {

@@ -7,6 +7,7 @@ pub mod components;
 pub mod overlays;
 pub mod primitives;
 pub mod theme_file;
+mod window_commands;
 
 use iced::widget::{button, column, container, row, text, text_editor, Space};
 use iced::{Element, Task};
@@ -73,6 +74,8 @@ pub enum Message {
     ToggleOpaque,
     /// 主题文件发生变化。
     ThemeFileChanged,
+    /// 执行应用层窗口动作。
+    WindowCommand(orb_core::WindowCommand),
 }
 
 /// Components 页交互消息（演示控件为真实可交互，非静态展示）。
@@ -195,7 +198,12 @@ impl Gallery {
                     ComponentMessage::ListSelect(value) => demo.list_selected = value,
                     ComponentMessage::TableSelect(value) => demo.table_selected = Some(value),
                     ComponentMessage::RadialSelect(value) => demo.radial_selected = Some(value),
-                    ComponentMessage::TitleBarMinimize | ComponentMessage::TitleBarClose => {}
+                    ComponentMessage::TitleBarMinimize => {
+                        return window_commands::apply(orb_core::WindowCommand::Minimize);
+                    }
+                    ComponentMessage::TitleBarClose => {
+                        return window_commands::apply(orb_core::WindowCommand::Close);
+                    }
                     ComponentMessage::SelectOption(value) => demo.select_option = Some(value),
                     ComponentMessage::TextArea(action) => demo.text_area.perform(action),
                     ComponentMessage::SplitRatio(value) => demo.split_ratio = value,
@@ -222,6 +230,7 @@ impl Gallery {
                 self.theme = theme_file::load_or_default(variant);
                 self.theme.opaque_fallback = opaque_fallback;
             }
+            Message::WindowCommand(command) => return window_commands::apply(command),
         }
         Task::none()
     }

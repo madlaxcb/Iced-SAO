@@ -1,7 +1,7 @@
 //! M4.1 + M4.4 通用组件展示页（真实可交互：状态由 [`ComponentDemo`] 持有）。
 
 use crate::{ComponentDemo, ComponentMessage, GalleryElement, Message};
-use iced::widget::{column, row, text};
+use iced::widget::{column, mouse_area, row, text};
 use orb_widgets::{
     avatar, badge, button_variant_label, card, checkbox_control, divider, glow, list_item, loading,
     panel, radial_menu, radio_control, readout, scroll_area, section_header, select,
@@ -176,14 +176,16 @@ pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
                 .spacing(10),
             ]
             .spacing(20),
-            title_bar(
+            mouse_area(title_bar(
                 "Gallery demo title bar",
                 Message::Component(ComponentMessage::TitleBarMinimize),
                 Message::Component(ComponentMessage::TitleBarClose),
-            ),
-            text(
-                "TitleBar buttons are no-op demo actions; real window APIs stay in the app layer."
-            ),
+            ))
+            .on_press(Message::WindowCommand(orb_core::WindowCommand::Drag))
+            .on_double_click(Message::WindowCommand(
+                orb_core::WindowCommand::ToggleMaximize,
+            )),
+            text("TitleBar actions use iced window tasks; platform-specific behavior stays deferred."),
             divider::<Message>(),
             text("P3: Select / TextArea / SplitPane / BackgroundLayer").size(18),
             select(

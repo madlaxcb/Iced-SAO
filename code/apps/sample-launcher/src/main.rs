@@ -2,14 +2,14 @@
 
 //! 示例应用：启动器主界面、状态面板、设置与对话通知流程。
 
-use iced::widget::{button, checkbox, column, container, row, text, Space};
+use iced::widget::{button, checkbox, column, container, mouse_area, row, text, Space};
 use iced::{Element, Length, Task};
 use orb_core::InteractionState;
 use orb_theme::OrbTheme;
 use orb_widgets::{
     card, divider, hp_bar, hp_bar_band, loop_scroll, loop_scroll_next, loop_scroll_prev,
-    menu_panel, menu_rail, menu_rail_next, menu_rail_prev, modal, ring, section_header, toast,
-    ToastLevel,
+    menu_panel, menu_rail, menu_rail_next, menu_rail_prev, modal, ring, section_header, title_bar,
+    toast, ToastLevel,
 };
 
 /// LoopScroll 条带占位数量。
@@ -59,6 +59,7 @@ enum Message {
     MenuPrev,
     LoopNext,
     LoopPrev,
+    WindowCommand(orb_core::WindowCommand),
 }
 
 struct App {
@@ -108,6 +109,9 @@ impl App {
             }
             Message::LoopNext => self.loop_index = loop_scroll_next(self.loop_index, MENU_ITEMS),
             Message::LoopPrev => self.loop_index = loop_scroll_prev(self.loop_index, MENU_ITEMS),
+            Message::WindowCommand(command) => {
+                return iced::window::latest().then(move |id| orb_core::window::task(command, id));
+            }
         }
         Task::none()
     }
@@ -156,9 +160,22 @@ impl App {
             Page::About => self.about_view(),
         };
 
-        row![container(navigation), container(body).width(Length::Fill)]
-            .height(Length::Fill)
-            .into()
+        let title = mouse_area(title_bar(
+            "Sample Launcher",
+            Message::WindowCommand(orb_core::WindowCommand::Minimize),
+            Message::WindowCommand(orb_core::WindowCommand::Close),
+        ))
+        .on_press(Message::WindowCommand(orb_core::WindowCommand::Drag))
+        .on_double_click(Message::WindowCommand(
+            orb_core::WindowCommand::ToggleMaximize,
+        ));
+
+        row![
+            container(navigation),
+            container(column![title, body].spacing(8)).width(Length::Fill),
+        ]
+        .height(Length::Fill)
+        .into()
     }
 
     fn launcher_view(&self) -> Element<'_, Message, OrbTheme> {
