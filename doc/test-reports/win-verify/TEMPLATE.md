@@ -68,7 +68,7 @@
 | 13 | TitleBar 标题与两个圆钮可见，演示操作不关闭 Gallery              | <br /> | <br />  |
 | 14 | Select 展开、选择并保持主题样式                                | <br /> | <br />  |
 | 15 | TextArea 换行与中文输入法上屏，内容不回弹                      | <br /> | <br />  |
-| 16 | SplitPane 左右区域与 20%..80% 比例边界                         | <br /> | <br />  |
+| 16 | SplitPane 拖拽分隔条，比例实时变化且限制在 20%..80%             | <br /> | <br />  |
 | 17 | BackgroundLayer 与 Opaque 降级布局一致                         | <br /> | <br />  |
 
 ## W5：招牌组件、动效与降级（sample-launcher + gallery）

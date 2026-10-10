@@ -5,7 +5,7 @@ use iced::widget::{column, row, text};
 use orb_widgets::{
     avatar, badge, button_variant_label, card, checkbox_control, divider, glow, list_item, loading,
     panel, radial_menu, radio_control, readout, scroll_area, section_header, select,
-    slider_control, split_pane, switch_control, table, tabs, text_area, text_input_control,
+    slider_control, split_pane_control, switch_control, table, tabs, text_area, text_input_control,
     themed_button, title_bar, BadgeLevel, ButtonVariant,
 };
 
@@ -204,10 +204,11 @@ pub fn view(demo: &ComponentDemo) -> GalleryElement<'_> {
                 "TextArea: {}",
                 demo.text_area.text().replace('\n', " / ")
             )),
-            split_pane(
+            split_pane_control(
                 card(text("SplitPane left")),
                 card(text("SplitPane right")),
                 demo.split_ratio,
+                |value| Message::Component(ComponentMessage::SplitRatio(value)),
             ),
             text(format!("SplitPane ratio: {:.0}%", demo.split_ratio * 100.0)),
             orb_widgets::background_layer(text("BackgroundLayer with opaque fallback"), 0.75,)

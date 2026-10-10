@@ -339,18 +339,48 @@ pub fn split_pane_ratio(ratio: f32) -> f32 {
     ratio.clamp(0.2, 0.8)
 }
 
-/// 创建水平比例分栏；拖拽交互由上层状态更新 ratio。
+/// 将分隔条拖拽位置映射为安全比例。
+pub fn split_pane_drag_ratio(position: f32, width: f32) -> f32 {
+    if width <= 0.0 {
+        return 0.2;
+    }
+    split_pane_ratio(position / width)
+}
+
+fn split_pane_columns<'a, Message: 'a>(
+    first: impl Into<Element<'a, Message, OrbTheme>>,
+    divider: impl Into<Element<'a, Message, OrbTheme>>,
+    second: impl Into<Element<'a, Message, OrbTheme>>,
+    ratio: f32,
+) -> iced::widget::Row<'a, Message, OrbTheme> {
+    iced::widget::Row::new()
+        .push(container(first).width(Length::FillPortion((ratio * 100.0) as u16)))
+        .push(divider)
+        .push(container(second).width(Length::FillPortion(((1.0 - ratio) * 100.0) as u16)))
+}
+
+/// 创建水平比例分栏；拖拽交互由应用层更新 ratio。
 pub fn split_pane<'a, Message: 'a>(
     first: impl Into<Element<'a, Message, OrbTheme>>,
     second: impl Into<Element<'a, Message, OrbTheme>>,
     ratio: f32,
 ) -> Element<'a, Message, OrbTheme> {
+    split_pane_columns(first, divider::<Message>(), second, split_pane_ratio(ratio)).into()
+}
+
+/// 创建可拖拽水平分栏。中间窄滑块是分隔条，拖动后回调新的 20%..80% 比例。
+pub fn split_pane_control<'a, Message: Clone + 'a>(
+    first: impl Into<Element<'a, Message, OrbTheme>>,
+    second: impl Into<Element<'a, Message, OrbTheme>>,
+    ratio: f32,
+    on_change: impl Fn(f32) -> Message + 'a,
+) -> Element<'a, Message, OrbTheme> {
     let ratio = split_pane_ratio(ratio);
-    iced::widget::Row::new()
-        .push(container(first).width(Length::FillPortion((ratio * 100.0) as u16)))
-        .push(divider::<Message>())
-        .push(container(second).width(Length::FillPortion(((1.0 - ratio) * 100.0) as u16)))
-        .into()
+    let handle = slider(0.2..=0.8, ratio, on_change)
+        .step(0.01_f32)
+        .width(Length::Fixed(14.0))
+        .style(orb_theme::style_slider);
+    split_pane_columns(first, handle, second, ratio).into()
 }
 
 /// 将背景叠层透明度限制在 0..1。
@@ -1436,10 +1466,14 @@ mod tests {
 
     #[test]
     fn split_pane_ratio_clamps_to_safe_range() {
-        use super::split_pane_ratio;
+        use super::{split_pane_drag_ratio, split_pane_ratio};
         assert_eq!(split_pane_ratio(-0.2), 0.2);
         assert!((split_pane_ratio(0.5) - 0.5).abs() < 1e-6);
         assert_eq!(split_pane_ratio(1.2), 0.8);
+        assert!((split_pane_drag_ratio(250.0, 1000.0) - 0.25).abs() < 1e-6);
+        assert_eq!(split_pane_drag_ratio(-1.0, 1000.0), 0.2);
+        assert_eq!(split_pane_drag_ratio(1200.0, 1000.0), 0.8);
+        assert_eq!(split_pane_drag_ratio(10.0, 0.0), 0.2);
     }
 
     #[test]

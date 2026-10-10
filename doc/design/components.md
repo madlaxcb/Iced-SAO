@@ -66,12 +66,14 @@
 | `select_index(selected, len)` | 选择索引的确定性边界处理 |
 | `text_area(content, on_action)` | 基于 iced `text_editor` 的多行编辑器，支持中文输入法与换行 |
 | `textarea_value(value)` | 多行文本值的稳定读取入口 |
-| `split_pane(first, second, ratio)` | 20%..80% 安全比例的水平分栏；比例状态由 app 层更新 |
+| `split_pane(first, second, ratio)` | 20%..80% 安全比例的水平分栏静态布局 |
+| `split_pane_control(first, second, ratio, on_change)` | 带主题化窄 Slider 分隔条的可拖拽分栏 |
 | `split_pane_ratio(ratio)` | 分栏比例边界处理纯函数 |
+| `split_pane_drag_ratio(position, width)` | 将分隔条位置转换为 20%..80% 安全比例 |
 | `background_layer(content, alpha)` | 主题背景层；Opaque 模式自动使用不透明底色 |
 | `background_alpha(alpha)` | 背景叠层透明度钳制纯函数 |
 
-`SplitPane` 当前提供稳定比例布局，不引入自定义拖拽 Widget；需要拖动时由应用层事件更新 `ratio`。
+`SplitPane` 提供稳定比例布局与主题化 Slider 分隔条；拖动时由 `on_change` 回调更新 `ratio`，比例始终限制在 20%..80%。
 `BackgroundLayer` 采用 G1 伪毛玻璃路线，不承诺实时背景模糊。
 
 ## 招牌组件（M3 / M5）
